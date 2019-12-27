@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+
+import sys
+import tabulate
+
+from parse_jira import parse_jira
+from simple_git import git_log_table
+from compare_commits import are_commits_equal
+from meta import Meta, subject_to_key
+
+tabulate.PRESERVE_WHITESPACE = True
+
+from benchit import BenchIt
+B = BenchIt()
+
+
+def colored_stub(s, *args, **vargs):
+    return s
+
+
+def colored_html(s, color):
+    if color is None:
+        return s
+    swap = {'yellow': 'orange', 'cyan': 'DarkCyan'}
+    color = swap.get(color, color)
+    return '<span style="color: {}">{}</span>'.format(color, s)
+
+
+colored_console = colored_stub
+if sys.stdout.isatty():
+    try:
+        import termcolor
+        colored_console = termcolor.colored
+    except ImportError:
+        print('for colors install termcolor module')
+
+def mega_colored(s, color):
+    if color is None:
+        return s
+
+    return colored_console(s, color)
+
+class CommitRange:
+    def __init__(self, definition, meta=None):
+        if ':' in definition:
+            self.name, self.git_range = definition.split(':', 1)
+        else:
+            self.name = definition
+            self.git_range = definition
+
+        lines = git_log_table('%h %s', self.git_range)
+
+        self.by_key = {}
+        for l in lines:
+            try:
+                h, s = l
+            except:
+                print(l)
+                exit(0)
+            key = subject_to_key(s, meta)
+
+            self.by_key[key] = h
+
+class Span:
+    def __init__(self, text, format='colored', klass=None):
+        self.text = text
+        self.klass = klass
+        self.format = 'colored'
+
+    def __str__(self):
+        if self.format == 'colored':
+            mapping = {
+                'bug-critical': 'red',
+                'bug-fixed': 'green',
+                'bug': 'cyan',
+                'unknown': 'red',
+                'matching': 'green',
+                'checked': 'yellow',
+                'drop': 'magenta',
+                None: None
+            }
+            return mega_colored(self.text, mapping[self.klass])
+        elif self.format == 'html':
+            return colored_html(self.text, self.klass)
+
+def git_range_diff_table(ranges, meta, jira, jira_issues, fmt):
+    """
+    ranges: [CommitRange]
+    meta: Meta
+    jira_issues: [str]
+    fmt: 'colored' | 'html'
+
+    Returns list of lists with printable objects
+    """
+    seq = ranges[-1]
+
+    log = git_log_table('%h %ad %an %s', seq.git_range)
+
+    B('before git_range_diff_table')
+
+    if jira_issues:
+        log1 = git_log_table('%h %ad %an %s', seq.git_range)
+        auth, server = jira.rsplit('@', 1)
+        user, password = auth.split(':', 1)
+        jira = parse_jira('https://' + server, user, password, jira_issues,
+                          [line[-1] for line in log1])
+        jira = {subject_to_key(k): v for k, v in jira.items()}
+        B('jira')
+
+
+    out = [['<tag>']] if meta else [[]]
+    out[0] += [r.name for r in ranges] + ['DATE', 'AUTHOR', 'SUBJECT']
+    for commit in log:
+        ad = commit[1]
+        an = commit[2]
+        if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
+            an = "Vladimir S-O"
+        s = commit[3]
+        key = subject_to_key(s, meta)
+        line = [Span(r.by_key.get(key, ''), fmt) for r in ranges]
+        line.append(ad)
+        line.append(an)
+        line.append(s)
+        if meta:
+            text = meta.get_tag(key) or ''
+            klass = 'drop' if text.startswith('drop') else None
+            line.insert(0, Span(text, fmt, klass))
+
+        ind = 1 if meta else 0
+        comp_ind = ind
+        if line[ind].text == '':
+            comp_ind = ind + len(ranges) - 1
+
+        B('before compare loop')
+        found = False
+        for i in range(ind + 1, ind + len(ranges)):
+            if i == comp_ind:
+                break
+            if line[i].text != '':
+                if are_commits_equal(line[comp_ind].text, line[i].text):
+                    found = True
+                    line[i].klass = 'matching'
+                elif meta and key in meta.by_key and meta.by_key[key].checked:
+                    for a, b in meta.by_key[key].checked:
+                        if (are_commits_equal(a, line[i].text) and
+                                are_commits_equal(b, line[comp_ind].text)) or \
+                            (are_commits_equal(b, line[i].text) and
+                                are_commits_equal(a, line[comp_ind].text)):
+                            found = True
+                            line[i].klass = 'checked'
+                            break
+        if found:
+            line[comp_ind].klass = 'matching'
+        B('compare loop')
+
+        if jira and key in jira:
+            issues = jira[key]
+            crit = any(issue.fields.priority.name in ('Critical', 'Blocker')
+                       for issue in issues)
+            fixed = all(issue.fields.resolution and
+                        issue.fields.resolution.name == 'Fixed'
+                        for issue in issues)
+            text = ','.join(issue.key for issue in issues)
+
+            if line[0].text:
+                line[0].text += '(' + text + ')'
+            else:
+                line[0].text = text
+
+            if fixed:
+                line[0].klass = 'bug-fixed'
+            elif crit:
+                line[0].klass = 'bug-critical'
+            else:
+                line[0].klass = 'bug'
+            B('jira handling')
+
+        if meta and not any(cell.text for cell in line[:ind + len(ranges) - 2]):
+            line[0].text = '???'
+            line[0].klass = 'unknown'
+            B('??? handling')
+
+        out.append([line[i] for i in range(len(line))])
+
+        if meta and key in meta.by_key and meta.by_key[key].comment:
+            out.append([''] * len(out[-1]))
+            out[-1][-1] = meta.by_key[key].comment
+
+    return out
+
+
+def main(ranges, meta, html, jira, jira_issues):
+    if meta:
+        meta = Meta(meta); B()
+
+    if html:
+        colored = colored_html
+    else:
+        colored = mega_colored
+
+    fmt = 'html' if html else 'colored'
+
+    ranges = [CommitRange(r, meta) for r in ranges]; B()
+    if jira_issues:
+        assert jira is not None
+        jira_issues = jira_issues.split(',')
+
+    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt); B()
+
+    if html:
+        print("""<!DOCTYPE html>
+              <meta charset="utf-8"/>
+              <style>
+              body {
+                 font-family: monospace;
+              }
+              </style>
+              """)
+
+    def_col = (
+        ('red', 'Critical bugs'),
+        ('green', 'Matching, checked automatically'),
+        ('yellow', 'Matching, checked by hand'),
+        ('magenta', 'Dropped patches'),
+        ('cyan', 'Jira issues, non-critical')
+    )
+    br = '<br>' if html else ''
+    for col, desc in def_col:
+        print(colored('███████ - ' + desc, col) + br)
+    for r in ranges:
+        if r.name != r.git_range:
+            print('{} = {}{}'.format(r.name, r.git_range, br))
+
+    B('something')
+    print(tabulate.tabulate(out, tablefmt=('html' if html else 'simple')))
+
+
+if __name__ == '__main__':
+    import argparse
+
+    p = argparse.ArgumentParser(description="Compare git commit ranges")
+
+    p.add_argument('ranges', metavar='range', nargs='+',
+                   help='ranges to compare, '
+                   'in form [<name>:]<git range or ref>')
+    p.add_argument('--meta', help='optional, file with additional metadata')
+    p.add_argument('--html', help='output in html format', action='store_true')
+    p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
+    p.add_argument('--jira', help='user:password@server')
+
+    B('preparations')
+    main(**vars(p.parse_args()))
+    B('printing')
+    B.display()
