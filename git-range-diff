@@ -10,8 +10,9 @@ from meta import Meta, subject_to_key
 
 tabulate.PRESERVE_WHITESPACE = True
 
-from benchit import BenchIt
-B = BenchIt()
+def B(*args):
+    '''stub for benchmark, see --bench option'''
+    pass
 
 
 def colored_stub(s, *args, **vargs):
@@ -189,7 +190,7 @@ def git_range_diff_table(ranges, meta, jira, jira_issues, fmt):
     return out
 
 
-def main(ranges, meta, html, jira, jira_issues):
+def main(ranges, meta, html, jira, jira_issues, bench):
     if meta:
         meta = Meta(meta); B()
 
@@ -247,8 +248,15 @@ if __name__ == '__main__':
     p.add_argument('--html', help='output in html format', action='store_true')
     p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
     p.add_argument('--jira', help='user:password@server')
+    p.add_argument('--bench', help='print self-benchmark results', action='store_true')
+
+    args = p.parse_args()
+    if args.bench:
+        from benchit import BenchIt
+        B = BenchIt()
 
     B('preparations')
-    main(**vars(p.parse_args()))
+    main(**vars(args))
     B('printing')
-    B.display()
+    if args.bench:
+        B.display()
