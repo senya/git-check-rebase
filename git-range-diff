@@ -175,7 +175,7 @@ def git_range_diff_table(ranges, meta, jira, jira_issues, fmt):
                 line[0].klass = 'bug'
             B('jira handling')
 
-        if meta and not any(cell.text for cell in line[:ind + len(ranges) - 2]):
+        if meta and not any(cell.text for cell in line[:ind + len(ranges) - 1]):
             line[0].text = '???'
             line[0].klass = 'unknown'
             B('??? handling')
