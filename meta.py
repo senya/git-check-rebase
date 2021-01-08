@@ -63,6 +63,8 @@ class Meta:
                     tag = line[:-1]
                     continue
 
+                if subject_to_key(line) in self.by_key:
+                    raise ValueError('Double definition for: ' + line)
                 commit = CommitMeta(line, tag)
                 self.by_key[subject_to_key(line)] = commit
 
