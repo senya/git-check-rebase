@@ -31,7 +31,7 @@ class CommitRange:
 
 def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                          fmt='colored', headers=True, date_column=True,
-                         author_column=True, bench_func=lambda x: None):
+                         author_column=True):
     """
     ranges: [CommitRange]
     meta: Meta
@@ -44,8 +44,6 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
 
     log = git_log_table('%h %ad %an %s', seq.git_range)
 
-    bench_func('before git_range_diff_table')
-
     if jira_issues:
         log1 = git_log_table('%h %ad %an %s', seq.git_range)
         auth, server = jira.rsplit('@', 1)
@@ -53,8 +51,6 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         jira = parse_jira('https://' + server, user, password, jira_issues,
                           [line[-1] for line in log1])
         jira = {subject_to_key(k): v for k, v in jira.items()}
-        bench_func('jira')
-
 
     if headers:
         out = [['<tag>']] if meta else [[]]
@@ -89,7 +85,6 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         if line[ind].text == '':
             comp_ind = ind + len(ranges) - 1
 
-        bench_func('before compare loop')
         found = False
         for i in range(ind + 1, ind + len(ranges)):
             if i == comp_ind:
@@ -109,7 +104,6 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                             break
         if found:
             line[comp_ind].klass = 'matching'
-        bench_func('compare loop')
 
         if jira and key in jira:
             issues = jira[key]
@@ -131,12 +125,10 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                 line[0].klass = 'bug-critical'
             else:
                 line[0].klass = 'bug'
-            bench_func('jira handling')
 
         if meta and not any(cell.text for cell in line[:ind + len(ranges) - 1]):
             line[0].text = '???'
             line[0].klass = 'unknown'
-            bench_func('??? handling')
 
         out.append([line[i] for i in range(len(line))])
 
