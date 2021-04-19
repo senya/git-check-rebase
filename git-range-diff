@@ -14,9 +14,24 @@ def B(*args):
     pass
 
 
+def print_legend(ranges, html):
+    def_col = (
+        ('bug-critical', 'Critical bugs'),
+        ('matching', 'Matching, checked automatically'),
+        ('checked', 'Matching, checked by hand'),
+        ('drop', 'Dropped patches'),
+        ('bug', 'Jira issues, non-critical')
+    )
+    br = '<br>' if html else ''
+    for col, desc in def_col:
+        print(Span(f'███████ - {desc}', klass=col))
+    for r in ranges:
+        if r.name != r.git_range:
+            print('{} = {}{}'.format(r.name, r.git_range, br))
 
 
-def main(ranges, meta, html, jira, jira_issues, bench):
+def main(ranges, meta, html, jira, jira_issues, bench,
+         legend):
     if meta:
         meta = Meta(meta); B()
 
@@ -40,22 +55,17 @@ def main(ranges, meta, html, jira, jira_issues, bench):
               </style>
               """)
 
-    def_col = (
-        ('bug-critical', 'Critical bugs'),
-        ('matching', 'Matching, checked automatically'),
-        ('checked', 'Matching, checked by hand'),
-        ('drop', 'Dropped patches'),
-        ('bug', 'Jira issues, non-critical')
-    )
-    br = '<br>' if html else ''
-    for col, desc in def_col:
-        print(Span(f'███████ - {desc}', klass=col))
-    for r in ranges:
-        if r.name != r.git_range:
-            print('{} = {}{}'.format(r.name, r.git_range, br))
+    if legend:
+        print_legend(ranges, html)
 
     B('something')
-    print(tabulate.tabulate(out, tablefmt=('html' if html else 'simple')))
+    if html:
+        tablefmt = 'html'
+    elif legend:
+        tablefmt = 'simple'
+    else:
+        tablefmt = 'plain'
+    print(tabulate.tabulate(out, tablefmt=tablefmt))
 
 
 if __name__ == '__main__':
@@ -71,6 +81,7 @@ if __name__ == '__main__':
     p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
     p.add_argument('--jira', help='user:password@server')
     p.add_argument('--bench', help='print self-benchmark results', action='store_true')
+    p.add_argument('--legend', help='print legend', action='store_true')
 
     args = p.parse_args()
     if args.bench:
