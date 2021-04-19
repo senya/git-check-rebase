@@ -38,7 +38,8 @@ class CommitRange:
             self.by_key[key] = h
 
 
-def git_range_diff_table(ranges, meta, jira, jira_issues, fmt):
+def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
+                         fmt='colored'):
     """
     ranges: [CommitRange]
     meta: Meta
