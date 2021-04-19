@@ -40,7 +40,7 @@ class CommitRange:
 
 def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                          fmt='colored', headers=True, date_column=True,
-                         author_column=True):
+                         author_column=True, bench_func=lambda x: None):
     """
     ranges: [CommitRange]
     meta: Meta
@@ -53,7 +53,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
 
     log = git_log_table('%h %ad %an %s', seq.git_range)
 
-    B('before git_range_diff_table')
+    bench_func('before git_range_diff_table')
 
     if jira_issues:
         log1 = git_log_table('%h %ad %an %s', seq.git_range)
@@ -62,7 +62,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         jira = parse_jira('https://' + server, user, password, jira_issues,
                           [line[-1] for line in log1])
         jira = {subject_to_key(k): v for k, v in jira.items()}
-        B('jira')
+        bench_func('jira')
 
 
     if headers:
@@ -98,7 +98,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         if line[ind].text == '':
             comp_ind = ind + len(ranges) - 1
 
-        B('before compare loop')
+        bench_func('before compare loop')
         found = False
         for i in range(ind + 1, ind + len(ranges)):
             if i == comp_ind:
@@ -118,7 +118,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                             break
         if found:
             line[comp_ind].klass = 'matching'
-        B('compare loop')
+        bench_func('compare loop')
 
         if jira and key in jira:
             issues = jira[key]
@@ -140,12 +140,12 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                 line[0].klass = 'bug-critical'
             else:
                 line[0].klass = 'bug'
-            B('jira handling')
+            bench_func('jira handling')
 
         if meta and not any(cell.text for cell in line[:ind + len(ranges) - 1]):
             line[0].text = '???'
             line[0].klass = 'unknown'
-            B('??? handling')
+            bench_func('??? handling')
 
         out.append([line[i] for i in range(len(line))])
 
@@ -167,7 +167,8 @@ def main(ranges, meta, html, jira, jira_issues, bench):
         assert jira is not None
         jira_issues = jira_issues.split(',')
 
-    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt); B()
+    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt,
+                               bench_func=B); B()
 
     if html:
         print("""<!DOCTYPE html>
