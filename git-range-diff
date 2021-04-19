@@ -6,6 +6,9 @@ import tabulate
 from meta import Meta
 from span import Span
 from compare_ranges import CommitRange, git_range_diff_table
+from compare_commits import vimdiff_commits
+from simple_git import git_log1
+from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -25,9 +28,12 @@ def print_legend(ranges, html):
             print('{} = {}{}'.format(r.name, r.git_range, br))
 
 
-def main(ranges, meta, html, jira, jira_issues, legend, format):
-    if meta:
-        meta = Meta(meta)
+def main(ranges, meta, html, jira, jira_issues, legend, format,
+         interactive):
+    if interactive and len(ranges) != 2:
+        exit('--interactive supports only two ranges mode')
+
+    meta_obj = Meta(meta) if meta else None
 
     fmt_full = format == 'full'
     fmt = 'html' if html else 'colored'
@@ -37,15 +43,56 @@ def main(ranges, meta, html, jira, jira_issues, legend, format):
         # No reason to search below ranges[2] base
         ranges[0] = ranges[1].split('..', 1)[0] + '..' + ranges[0]
 
-    ranges = [CommitRange(r, meta) for r in ranges]
+    ranges = [CommitRange(r, meta_obj) for r in ranges]
     if jira_issues:
         assert jira is not None
         jira_issues = jira_issues.split(',')
 
-    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt,
+    out = git_range_diff_table(ranges, meta_obj, jira, jira_issues, fmt,
                                headers=fmt_full,
                                date_column=fmt_full,
-                               author_column=fmt_full)
+                               author_column=fmt_full,
+                               meta_column=fmt_full)
+
+    created_meta = False
+    if interactive:
+        tab = out[1:] if fmt_full else out
+        col_ind = 1 if meta else 0
+        checked_pairs = []
+        for line_ind, line in enumerate(tab):
+            a = line[col_ind]
+            b = line[col_ind + 1]
+            if a.klass in ('matching', 'checked') or not a.text:
+                continue
+
+            p = vimdiff_commits(a.text, b.text, c2_ind=line_ind)
+            if p.returncode == 0:
+                checked_pairs.append((a.text, b.text))
+
+        if checked_pairs:
+            lines = []
+            for a, b in checked_pairs:
+                lines.append(git_log1('%s', b))
+                lines.append(f'  ok: {a} {b}')
+
+            if meta:
+                with open(meta, 'r+') as f:
+                    content = f.read()
+                    f.seek(0, 0)
+                    f.write('\n'.join(lines) + '\n\n' + content)
+            else:
+                fd, path = mkstemp()
+                meta = path
+                created_meta = True
+                with open(fd, 'w') as f:
+                    f.write('\n'.join(lines) + '\n')
+
+                # Regenerate output, using created metafile
+                out = git_range_diff_table(ranges, Meta(meta), jira, jira_issues, fmt,
+                                           headers=fmt_full,
+                                           date_column=fmt_full,
+                                           author_column=fmt_full,
+                                           meta_column=fmt_full)
 
     if html:
         print("""<!DOCTYPE html>
@@ -68,6 +115,12 @@ def main(ranges, meta, html, jira, jira_issues, legend, format):
         tablefmt = 'plain'
     print(tabulate.tabulate(out, tablefmt=tablefmt))
 
+    if created_meta:
+        print(f"""
+
+Meta file is created: {meta}
+You may use it with next run, specifying option --meta {meta}""")
+
 
 if __name__ == '__main__':
     import argparse
@@ -85,6 +138,11 @@ if __name__ == '__main__':
     p.add_argument('--format', help='what to show in table: "short" is default. '
                    '"full" adds author and date columns and also column headers',
                    default='short')
+    p.add_argument('--interactive', help='do interactive comparison of not-equal commits. '
+                   'For each commit to compare, vimdiff is started as a subprocess. User '
+                   'should exit it successfully (by :qa) to mark commits "ok", and with '
+                   'error (by :cq) to don\'t mark commits "ok"',
+                   action='store_true')
 
     args = p.parse_args()
 
