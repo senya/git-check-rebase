@@ -194,11 +194,6 @@ def main(ranges, meta, html, jira, jira_issues, bench):
     if meta:
         meta = Meta(meta); B()
 
-    if html:
-        colored = colored_html
-    else:
-        colored = mega_colored
-
     fmt = 'html' if html else 'colored'
 
     ranges = [CommitRange(r, meta) for r in ranges]; B()
@@ -219,15 +214,15 @@ def main(ranges, meta, html, jira, jira_issues, bench):
               """)
 
     def_col = (
-        ('red', 'Critical bugs'),
-        ('green', 'Matching, checked automatically'),
-        ('yellow', 'Matching, checked by hand'),
-        ('magenta', 'Dropped patches'),
-        ('cyan', 'Jira issues, non-critical')
+        ('bug-critical', 'Critical bugs'),
+        ('matching', 'Matching, checked automatically'),
+        ('checked', 'Matching, checked by hand'),
+        ('drop', 'Dropped patches'),
+        ('bug', 'Jira issues, non-critical')
     )
     br = '<br>' if html else ''
     for col, desc in def_col:
-        print(colored('███████ - ' + desc, col) + br)
+        print(Span(f'███████ - {desc}', klass=col))
     for r in ranges:
         if r.name != r.git_range:
             print('{} = {}{}'.format(r.name, r.git_range, br))
