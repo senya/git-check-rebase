@@ -7,6 +7,15 @@ def git(cmd):
                           check=True, stdout=subprocess.PIPE).stdout
 
 
+def git_log1(format, rev):
+    cmd = f"log -1 --format='{format}' {rev}"
+    try:
+        return git(cmd).strip()
+    except subprocess.CalledProcessError as e:
+        # assume, git will print error message
+        sys.exit(e.returncode)
+
+
 def git_log(format, param):
     cmd = "log --reverse --date=format:'%d.%m.%y %H:%M' " \
         "'--pretty=format:{}' {}".format(format, param)
