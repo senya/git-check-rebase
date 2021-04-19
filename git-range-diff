@@ -32,6 +32,11 @@ def main(ranges, meta, html, jira, jira_issues, legend, format):
     fmt_full = format == 'full'
     fmt = 'html' if html else 'colored'
 
+    if len(ranges) == 2 and '..' in ranges[1] and \
+            '..' not in ranges[0]:
+        # No reason to search below ranges[2] base
+        ranges[0] = ranges[1].split('..', 1)[0] + '..' + ranges[0]
+
     ranges = [CommitRange(r, meta) for r in ranges]
     if jira_issues:
         assert jira is not None
