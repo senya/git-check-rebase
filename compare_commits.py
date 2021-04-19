@@ -5,17 +5,27 @@ from simple_git import git, git_get_git_dir
 
 eat_numbers_subs = [
     [r'^index .*', 'index <some index>'],
+    [r'^commit .*', 'commit <some commit>'],
+    [r'^Date:.*00', 'Date: <some date>'],
     [r'^@@ .* @@', '@@ <some lines> @@'],
-    [r'^\+\n', ''],
-    [r'^\-\n', ''],
 ]
 for e in eat_numbers_subs:
     e[0] = re.compile(e[0], re.MULTILINE)
 
+empty_line_changes_subs = [
+    [r'^\+\n', ''],
+    [r'^\-\n', ''],
+]
+for e in empty_line_changes_subs:
+    e[0] = re.compile(e[0], re.MULTILINE)
 
-def eat_numbers(patch):
+def eat_numbers(patch, ignore_empty_lines=True):
     for e in eat_numbers_subs:
         patch = e[0].sub(e[1], patch)
+
+    if ignore_empty_lines:
+        for e in empty_line_changes_subs:
+            patch = e[0].sub(e[1], patch)
 
     return patch
 
