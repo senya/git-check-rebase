@@ -39,7 +39,7 @@ class CommitRange:
 
 
 def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
-                         fmt='colored'):
+                         fmt='colored', headers=True):
     """
     ranges: [CommitRange]
     meta: Meta
@@ -64,8 +64,14 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         B('jira')
 
 
-    out = [['<tag>']] if meta else [[]]
-    out[0] += [r.name for r in ranges] + ['DATE', 'AUTHOR', 'SUBJECT']
+    if headers:
+        out = [['<tag>']] if meta else [[]]
+        out[0] += [r.name for r in ranges]
+        out[0].append('DATE')
+        out[0].append('AUTHOR')
+        out[0].append('SUBJECT')
+    else:
+        out = []
     for commit in log:
         ad = commit[1]
         an = commit[2]
