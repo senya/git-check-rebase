@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import sys
+
+from compare_commits import vimdiff_commits
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("""\
+Usage: git change-diff <rev1> <rev2>
+
+Compares git-show output for specified commits ignoring some
+not interesting things like line numbers and hashes.
+""")
+
+    vimdiff_commits(sys.argv[1], sys.argv[2])

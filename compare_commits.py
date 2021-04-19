@@ -1,7 +1,8 @@
 import re
 import os
+import subprocess
 
-from simple_git import git, git_get_git_dir
+from simple_git import git, git_get_git_dir, git_log1
 
 eat_numbers_subs = [
     [r'^index .*', 'index <some index>'],
@@ -77,3 +78,21 @@ def are_commits_equal(c1, c2):
     CACHE.add(c1, c2, result)
 
     return result
+
+
+def vimdiff_commits(c1, c2, c2_ind=None):
+    c1_text = eat_numbers(git('show ' + c1), ignore_empty_lines=False)
+    c2_text = eat_numbers(git('show ' + c2), ignore_empty_lines=False)
+    if c1_text == c2_text:
+        return
+
+    f1 = git_log1('/tmp/%h-%f.patch', c1)
+    with open(f1, 'w') as f:
+        f.write(c1_text)
+
+    f2_prefix = '' if c2_ind is None else f'[{c2_ind}]'
+    f2 = git_log1(f'/tmp/{f2_prefix}%h-%f.patch', c2)
+    with open(f2, 'w') as f:
+        f.write(c2_text)
+
+    return subprocess.run(['vimdiff', f1, f2])
