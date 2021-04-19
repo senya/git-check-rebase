@@ -25,10 +25,11 @@ def print_legend(ranges, html):
             print('{} = {}{}'.format(r.name, r.git_range, br))
 
 
-def main(ranges, meta, html, jira, jira_issues, legend):
+def main(ranges, meta, html, jira, jira_issues, legend, format):
     if meta:
         meta = Meta(meta)
 
+    fmt_full = format == 'full'
     fmt = 'html' if html else 'colored'
 
     ranges = [CommitRange(r, meta) for r in ranges]
@@ -36,7 +37,10 @@ def main(ranges, meta, html, jira, jira_issues, legend):
         assert jira is not None
         jira_issues = jira_issues.split(',')
 
-    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt)
+    out = git_range_diff_table(ranges, meta, jira, jira_issues, fmt,
+                               headers=fmt_full,
+                               date_column=fmt_full,
+                               author_column=fmt_full)
 
     if html:
         print("""<!DOCTYPE html>
@@ -73,6 +77,9 @@ if __name__ == '__main__':
     p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
     p.add_argument('--jira', help='user:password@server')
     p.add_argument('--legend', help='print legend', action='store_true')
+    p.add_argument('--format', help='what to show in table: "short" is default. '
+                   '"full" adds author and date columns and also column headers',
+                   default='short')
 
     args = p.parse_args()
 
