@@ -7,4 +7,4 @@ setup(name='git-check-rebase',
       author='Vladimir Sementsov-Ogievskiy',
       author_email='vsementsov@virtuozzo.com',
       license='MIT',
-      scripts=['git-check-rebase', 'git-change-difftool'])
+      scripts=['git-check-rebase', 'git-change-difftool', 'git-change-diff'])

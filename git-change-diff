@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("""\
+Usage: git change-diff <rev1> <rev2>
+
+Short-hand for "git range-diff rev1^..rev1 rev2^..rev2"
+""")
+
+    a, b = sys.argv[1:]
+    subprocess.run(['git', 'range-diff', f'{a}^..{a}', f'{b}^..{b}'])
