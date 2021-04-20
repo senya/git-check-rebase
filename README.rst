@@ -1,6 +1,16 @@
 git check-rebase
 ================
 
+Installation
+------------
+
+Use pip package manager in any way you prefer. For example:
+
+    pip3 install git+https://vsementsov@git.sw.ru/scm/~vsementsov/git-check-rebase.git
+
+Description
+-----------
+
 git-check-rebase package provides scripts for different kinds of git branch rebasing control. Let's look through the scenarios, from simple to more complicated.
 
 Compare two commits: git-change-diff
