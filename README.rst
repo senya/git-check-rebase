@@ -13,10 +13,10 @@ Description
 
 git-check-rebase package provides scripts for different kinds of git branch rebasing control. Let's look through the scenarios, from simple to more complicated.
 
-Compare two commits: git-change-diff
+Compare two commits: git-change-difftool
 ------------------------------------
 
-Compare two commits. Git provides a native thing to compare commits - git-diff. But sometimes we need to compare the *changes* that commits do. Like comparing patches. Simple example: you cherry-picked some commit from one branch to another. After resolving the conflicts you want to check, what did you change in commit. You may format patches for the commits to compare and compare them by vimdiff, but there would be alot of noice: a bit different line numbers, different hashes. So, there is a tool, that compares differences ignoring such things: git-change-diff. Usage is simple:
+Compare two commits. Git provides a native thing to compare commits - git-diff. But sometimes we need to compare the *changes* that commits do. Like comparing patches. Simple example: you cherry-picked some commit from one branch to another. After resolving the conflicts you want to check, what did you change in commit. You may format patches for the commits to compare and compare them by vimdiff, but there would be alot of noice: a bit different line numbers, different hashes. So, there is a tool, that compares differences ignoring such things: git-change-difftool. Usage is simple:
 
     git change-diff *<rev1>* *<rev2>*  -  compare changes, contributed by commits *rev1* and *rev2*
 
@@ -70,7 +70,7 @@ Options
 
 .. option:: --interactive
 
-   For not-equal commits start and interactive comparison. For each pair of matching but not equeal commits ``git-change-diff`` is called. Zero return status is considered as "commits are OK", failure as "commits are not OK". Note, that to exit ``vimdiff`` with error code, you should use command ``:cq``. The information is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
+   For not-equal commits start and interactive comparison. For each pair of matching but not equeal commits ``git-change-difftool`` is called. Zero return status is considered as "commits are OK", failure as "commits are not OK". Note, that to exit ``vimdiff`` with error code, you should use command ``:cq``. The information is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
    ``--interactive`` may be used only when exatly two ranges are specified.
 
 Ranges:
@@ -139,7 +139,7 @@ What will we see:
 
     - some commits are still not forward-ported or somehow lost.
 
-Now, we should work with our meta file. For example, compare some not green pairs of commits with help of ``git-change-diff`` and add information to meta file, or start ``--interactive`` session of ``git-check-rebase`` which will add information to meta file automatically.
+Now, we should work with our meta file. For example, compare some not green pairs of commits with help of ``git-change-difftool`` and add information to meta file, or start ``--interactive`` session of ``git-check-rebase`` which will add information to meta file automatically.
 
 Describe in meta file commits that are removed in a new version, like this:
 
