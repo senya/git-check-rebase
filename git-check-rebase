@@ -65,7 +65,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, format,
             if a.klass in ('matching', 'checked') or not a.text:
                 continue
 
-            p = vimdiff_commits(a.text, b.text, c2_ind=line_ind)
+            p = vimdiff_commits(a.text, b.text, c2_ind=line_ind+1)
             if p.returncode == 0:
                 checked_pairs.append((a.text, b.text))
 
