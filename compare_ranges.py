@@ -3,7 +3,7 @@ import sys
 from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
-from meta import Meta, subject_to_key
+from check_rebase_meta import Meta, subject_to_key
 from span import Span
 
 

@@ -3,7 +3,7 @@
 import sys
 import tabulate
 
-from meta import Meta
+from check_rebase_meta import Meta
 from span import Span
 from compare_ranges import CommitRange, git_range_diff_table
 from compare_commits import vimdiff_commits
