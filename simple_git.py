@@ -29,10 +29,19 @@ def git_log(format, param):
     return lines
 
 
-def git_log_table(format, param, splitter='$%^@'):
+def git_log_table_one_range(format, param, splitter):
     lines = git_log(format.replace(' ', splitter), param)
 
     return (line.split(splitter) for line in lines if line)
+
+
+def git_log_table(format, param, splitter='$%^@'):
+    lines = []
+
+    for p in param.split(','):
+        lines += git_log_table_one_range(format, p, splitter)
+
+    return lines
 
 
 def git_get_git_dir():

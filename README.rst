@@ -76,7 +76,7 @@ Options
 
 Ranges:
 
-*range* is ``[name:][base..]top``, where name (if specified) will be used as corresponding column header. If *base* revision is not specified, the whole history of *top* revision is used as range (like for ``git-log`` command).
+*range* is ``[name:][base..]top[,[base..]top...]``, where name (if specified) will be used as corresponding column header. If *base* revision is not specified, the whole history of *top* revision is used as range (like for ``git-log`` command).
 
 Meta syntax
 ~~~~~~~~~~~
