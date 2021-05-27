@@ -18,7 +18,7 @@ Compare two commits: git-change-diff, git-change-difftool
 
 Compare two commits. Git provides a native thing to compare commits - git-diff. But sometimes we need to compare the *changes* that commits do. Like comparing patches. Simple example: you cherry-picked some commit from one branch to another. After resolving the conflicts you want to check, what did you change in commit. You may format patches for the commits to compare and compare them by vimdiff, but there would be alot of noice: a bit different line numbers, different hashes. So, there is a tool, that compares differences ignoring such things: git-change-difftool. Usage is simple:
 
-    git change-diff *<rev1>* *<rev2>*  -  compare changes, contributed by commits *rev1* and *rev2*, shorthand to git range-diff rev1^..rev1 rev2^..rev2
+    git change-diff *<rev1>* *<rev2>* [<N>]  -  compare changes, contributed by commits *rev1* and *rev2*, shorthand to git range-diff rev1^..rev1 rev2^..rev2, if N is provided it's a shorthand to git range-diff rev1~N..rev1 rev2~N..rev2
     git change-difftool *<rev1>* *<rev2>*  -  compare changes, contributed by commits *rev1* and *rev2* in vimdiff (no relation to git range-diff)
 
 Compare git ranges: git-check-rebase

@@ -5,12 +5,17 @@ import subprocess
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
+    n = len(sys.argv)
+    if n > 4 or n < 3:
         print("""\
-Usage: git change-diff <rev1> <rev2>
+Usage: git change-diff <rev1> <rev2> [<number_of_commits>]
 
 Short-hand for "git range-diff rev1^..rev1 rev2^..rev2"
 """)
 
-    a, b = sys.argv[1:]
-    subprocess.run(['git', 'range-diff', f'{a}^..{a}', f'{b}^..{b}'])
+    if n == 3:
+        a, b = sys.argv[1:]
+        subprocess.run(['git', 'range-diff', f'{a}^..{a}', f'{b}^..{b}'])
+    elif n == 4:
+        a, b, c = sys.argv[1:]
+        subprocess.run(['git', 'range-diff', f'{a}~{c}..{a}', f'{b}~{c}..{b}'])
