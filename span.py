@@ -49,3 +49,5 @@ class Span:
             return mega_colored(self.text, mapping[self.klass])
         elif self.format == 'html':
             return colored_html(self.text, self.klass)
+        else:
+            return self.text

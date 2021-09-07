@@ -74,6 +74,11 @@ Options
    For not-equal commits start and interactive comparison. For each pair of matching but not equeal commits ``git-change-difftool`` is called. Zero return status is considered as "commits are OK", failure as "commits are not OK". Note, that to exit ``vimdiff`` with error code, you should use command ``:cq``. The information is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
    ``--interactive`` may be used only when exatly two ranges are specified.
 
+.. option:: --color, --no-color
+
+   Highlight or not the results. When --html option is in use --no-color doesn't make sense: html is always highlighted.
+   If unspecified results are highlighted by default if stdout is tty.
+
 Ranges:
 
 *range* is ``[name:][base..]top[,[base..]top...]``, where name (if specified) will be used as corresponding column header. If *base* revision is not specified, the whole history of *top* revision is used as range (like for ``git-log`` command).
