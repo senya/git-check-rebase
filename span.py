@@ -32,7 +32,7 @@ class Span:
     def __init__(self, text, format='colored', klass=None):
         self.text = text
         self.klass = klass
-        self.format = 'colored'
+        self.format = format
 
     def __str__(self):
         if self.format == 'colored':
