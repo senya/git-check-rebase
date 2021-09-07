@@ -61,9 +61,9 @@ Options
 
    Show legend above the table - the description of columns and colors.
 
-.. option:: --format FORMAT
+.. option:: --columns COLS_FORMAT
 
-   Two format are available for now:
+   Two columns format are available for now:
 
    short: the default. Doesn't show meta, author and date columnts. Doesn't show information from meta file except for checked commits (marked by yellow color). Column headers are not printed too. This is convenient for comparing different versions of a branch with one feature, prepared to be sent upstream.
 

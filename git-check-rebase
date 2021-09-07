@@ -28,14 +28,14 @@ def print_legend(ranges, html):
             print('{} = {}{}'.format(r.name, r.git_range, br))
 
 
-def main(ranges, meta, html, jira, jira_issues, legend, format,
+def main(ranges, meta, html, jira, jira_issues, legend, columns,
          interactive, color):
     if interactive and len(ranges) != 2:
         exit('--interactive supports only two ranges mode')
 
     meta_obj = Meta(meta) if meta else None
 
-    fmt_full = format == 'full'
+    cols_full = columns == 'full'
     if  html:
         fmt = 'html'
     elif color is None:
@@ -54,14 +54,14 @@ def main(ranges, meta, html, jira, jira_issues, legend, format,
         jira_issues = jira_issues.split(',')
 
     out = git_range_diff_table(ranges, meta_obj, jira, jira_issues, fmt,
-                               headers=fmt_full,
-                               date_column=fmt_full,
-                               author_column=fmt_full,
-                               meta_column=fmt_full)
+                               headers=cols_full,
+                               date_column=cols_full,
+                               author_column=cols_full,
+                               meta_column=cols_full)
 
     created_meta = False
     if interactive:
-        tab = out[1:] if fmt_full else out
+        tab = out[1:] if cols_full else out
         col_ind = 1 if meta else 0
         checked_pairs = []
         for line_ind, line in enumerate(tab):
@@ -94,10 +94,10 @@ def main(ranges, meta, html, jira, jira_issues, legend, format,
 
                 # Regenerate output, using created metafile
                 out = git_range_diff_table(ranges, Meta(meta), jira, jira_issues, fmt,
-                                           headers=fmt_full,
-                                           date_column=fmt_full,
-                                           author_column=fmt_full,
-                                           meta_column=fmt_full)
+                                           headers=cols_full,
+                                           date_column=cols_full,
+                                           author_column=cols_full,
+                                           meta_column=cols_full)
 
     if html:
         print("""<!DOCTYPE html>
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
     p.add_argument('--jira', help='user:password@server')
     p.add_argument('--legend', help='print legend', action='store_true')
-    p.add_argument('--format', help='what to show in table: "short" is default. '
+    p.add_argument('--columns', help='which columns to show in table: "short" is default. '
                    '"full" adds author and date columns and also column headers',
                    default='short')
     p.add_argument('--interactive', help='do interactive comparison of not-equal commits. '
