@@ -31,7 +31,8 @@ class CommitRange:
 
 def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
                          fmt='colored', headers=True, date_column=True,
-                         author_column=True, meta_column=True):
+                         author_column=True, meta_column=True,
+                         rows_full=True):
     """
     ranges: [CommitRange]
     meta: Meta
@@ -73,6 +74,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
             an = "Vladimir S-O"
         s = commit[3]
         key = subject_to_key(s, meta)
+        skip_this_line = not rows_full
         line = [Span(r.by_key.get(key, ''), fmt) for r in ranges]
         if date_column:
             line.append(ad)
@@ -88,6 +90,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         comp_ind = ind
         if line[ind].text == '':
             comp_ind = ind + len(ranges) - 1
+            skip_this_line = False
 
         found = False
         for i in range(ind + 1, ind + len(ranges)):
@@ -109,6 +112,9 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         if found:
             line[comp_ind].klass = 'matching'
 
+        skip_this_line = skip_this_line and (line[ind].klass == 'matching') \
+            and (line[ind + len(ranges) - 1].klass in ('matching', 'checked'))
+
         if jira and key in jira:
             issues = jira[key]
             crit = any(issue.fields.priority.name in ('Critical', 'Blocker')
@@ -123,6 +129,8 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
             else:
                 line[0].text = text
 
+            skip_this_line = skip_this_line and fixed
+
             if fixed:
                 line[0].klass = 'bug-fixed'
             elif crit:
@@ -133,11 +141,13 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         if meta_column and not any(cell.text for cell in line[:ind + len(ranges) - 1]):
             line[0].text = '???'
             line[0].klass = 'unknown'
+            assert not skip_this_line
 
-        out.append([line[i] for i in range(len(line))])
+        if not skip_this_line:
+            out.append([line[i] for i in range(len(line))])
 
-        if meta_column and key in meta.by_key and meta.by_key[key].comment:
-            out.append([''] * len(out[-1]))
-            out[-1][-1] = meta.by_key[key].comment
+            if meta_column and key in meta.by_key and meta.by_key[key].comment:
+                out.append([''] * len(out[-1]))
+                out[-1][-1] = meta.by_key[key].comment
 
     return out

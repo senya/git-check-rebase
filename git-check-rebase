@@ -29,12 +29,13 @@ def print_legend(ranges, html):
 
 
 def main(ranges, meta, html, jira, jira_issues, legend, columns,
-         interactive, color):
+         rows, interactive, color):
     if interactive and len(ranges) != 2:
         exit('--interactive supports only two ranges mode')
 
     meta_obj = Meta(meta) if meta else None
 
+    rows_full = rows == 'all'
     cols_full = columns == 'full'
     if  html:
         fmt = 'html'
@@ -57,7 +58,8 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                                headers=cols_full,
                                date_column=cols_full,
                                author_column=cols_full,
-                               meta_column=cols_full)
+                               meta_column=cols_full,
+                               rows_full=rows_full)
 
     created_meta = False
     if interactive:
@@ -97,7 +99,8 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                                            headers=cols_full,
                                            date_column=cols_full,
                                            author_column=cols_full,
-                                           meta_column=cols_full)
+                                           meta_column=cols_full,
+                                           rows_full=rows_full)
 
     if html:
         print("""<!DOCTYPE html>
@@ -143,6 +146,10 @@ if __name__ == '__main__':
     p.add_argument('--columns', help='which columns to show in table: "short" is default. '
                    '"full" adds author and date columns and also column headers',
                    default='short')
+    p.add_argument('--rows', choices=('all', 'short'),
+                   help='which rows to show in table: "all" is default. '
+                   '"short" omits rows where first column equal to the last column',
+                   default='all')
     p.add_argument('--interactive', help='do interactive comparison of not-equal commits. '
                    'For each commit to compare, vimdiff is started as a subprocess. User '
                    'should exit it successfully (by :qa) to mark commits "ok", and with '

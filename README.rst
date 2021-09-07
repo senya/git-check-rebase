@@ -69,6 +69,14 @@ Options
 
    full: show all columns and meta information, as well as column headers. This is convenient for large rebases of downstream project branch to new upstream version.
 
+.. option:: --rows ROWS_FORMAT
+
+   Two rows formats are available for now:
+
+   all: the default. Print all rows.
+
+   short: omits rows where first column equal to the last column.
+
 .. option:: --interactive
 
    For not-equal commits start and interactive comparison. For each pair of matching but not equeal commits ``git-change-difftool`` is called. Zero return status is considered as "commits are OK", failure as "commits are not OK". Note, that to exit ``vimdiff`` with error code, you should use command ``:cq``. The information is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
