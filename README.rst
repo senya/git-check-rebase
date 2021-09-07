@@ -55,7 +55,7 @@ Options
 
 .. option:: --jira-issues ISSUE_KEY1[,ISSUE_KEY2...]
 
-   Comma separated list of issues, where to search for commits from the *sequence*. Subtasks are searched too. Issues with description containing some commit subject from the *sequence* are listed in meta-column of the output.
+   Comma separated list of issues, where to search for commits from the *sequence*. Subtasks are searched too. If epic issues is specified all issues in this epic are searched, not the epic itself. Issues with description containing some commit subject from the *sequence* are listed in meta-column of the output.
 
 .. option:: --legend
 

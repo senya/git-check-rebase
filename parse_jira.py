@@ -1,8 +1,18 @@
 import jira
 
+from jira.utils import json_loads
+
 
 def parse_issue(j, key, commits, result):
-    issue = j.issue(key, fields='description,subtasks,priority,resolution')
+    issue = j.issue(key, fields='description,subtasks,priority,resolution,'
+                    'issuetype')
+
+    if issue.fields.issuetype.name == 'Epic':
+        url = j.server_url + f'/rest/agile/1.0/epic/{key}/issue'
+        issues_in_epic = json_loads(j._session.get(url))['issues']
+        for iss in issues_in_epic:
+            parse_issue(j, iss['key'], commits, result)
+        return
 
     if issue.fields.description:
         for line in issue.fields.description.split('\n'):
