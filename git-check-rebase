@@ -65,42 +65,38 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
     if interactive:
         tab = out[1:] if cols_full else out
         col_ind = 1 if meta else 0
-        checked_pairs = []
+
+        if not meta:
+            fd, meta = mkstemp()
+            created_meta = True
+            meta_obj = Meta(meta)
+
         for line_ind, line in enumerate(tab):
             a = line[col_ind]
             b = line[col_ind + 1]
-            if a.klass in ('matching', 'checked') or not a.text:
+            if not a or not a.text or a.klass in ('matching', 'checked'):
                 continue
 
-            code = vimdiff_commits(a.text, b.text, c2_ind=line_ind+1)
-            if code == 0:
-                checked_pairs.append((a.text, b.text))
+            subj = git_log1('%s', b)
+            comment_fd, comment_path = mkstemp()
+            with open(comment_fd, 'w') as f:
+                f.write(meta_obj.get_comment(subj))
 
-        if checked_pairs:
-            lines = []
-            for a, b in checked_pairs:
-                lines.append(git_log1('%s', b))
-                lines.append(f'  ok: {a} {b}')
+            code = vimdiff_commits(a.text, b.text, c2_ind=line_ind+1,
+                                   comment_path=comment_path)
+            with open(comment_path) as f:
+                ok_pair = (a.text, b.text) if code == 200 else None
+                meta_obj.update_meta(subj, f.read(), ok_pair)
+            if code not in (0, 200):
+                break
 
-            if meta:
-                with open(meta, 'r+') as f:
-                    content = f.read()
-                    f.seek(0, 0)
-                    f.write('\n'.join(lines) + '\n\n' + content)
-            else:
-                fd, path = mkstemp()
-                meta = path
-                created_meta = True
-                with open(fd, 'w') as f:
-                    f.write('\n'.join(lines) + '\n')
-
-                # Regenerate output, using created metafile
-                out = git_range_diff_table(ranges, Meta(meta), jira, jira_issues, fmt,
-                                           headers=cols_full,
-                                           date_column=cols_full,
-                                           author_column=cols_full,
-                                           meta_column=cols_full,
-                                           rows_full=rows_full)
+        # Regenerate output as meta was updated
+        out = git_range_diff_table(ranges, meta_obj, jira, jira_issues, fmt,
+                                   headers=cols_full,
+                                   date_column=cols_full,
+                                   author_column=cols_full,
+                                   meta_column=cols_full,
+                                   rows_full=rows_full)
 
     if html:
         print("""<!DOCTYPE html>

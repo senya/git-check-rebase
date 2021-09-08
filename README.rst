@@ -79,7 +79,17 @@ Options
 
 .. option:: --interactive
 
-   For not-equal commits start and interactive comparison. For each pair of matching but not equeal commits ``git-change-difftool`` is called. Zero return status is considered as "commits are OK", failure as "commits are not OK". Note, that to exit ``vimdiff`` with error code, you should use command ``:cq``. The information is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
+   For not-equal commits start an interactive comparison. For each pair of matching but not equeal commits ``vim`` is called with two patches opened to compare. In vim you may:
+
+   1. Use :meta command to toggle comment window, where you can put any comment about rebasing that commit. When :meta command closes the window its contents is saved. You also may save it by normal :w command.
+
+   2. Just exit (:qa), to continue the process
+
+   3. Use :ok command (save all and exit with error status 200) to mark current pair of commits as "OK" and continue the process
+
+   4. Use :cq (exit with error status 1) to stop the interactive process (all previous results are saved, don't forget to save meta buffer if you need)
+
+   The information (comments and OK statuses) is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
    ``--interactive`` may be used only when exatly two ranges are specified.
 
 .. option:: --color, --no-color
