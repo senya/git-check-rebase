@@ -1,7 +1,9 @@
-import sys
-
-def colored_stub(s, *args, **vargs):
-    return s
+try:
+    from termcolor import colored
+    has_colored = True
+except ImportError:
+    print('for colors install termcolor python module')
+    has_colored = False
 
 
 def colored_html(s, color):
@@ -12,20 +14,11 @@ def colored_html(s, color):
     return '<span style="color: {}">{}</span>'.format(color, s)
 
 
-colored_console = colored_stub
-if sys.stdout.isatty():
-    try:
-        import termcolor
-        colored_console = termcolor.colored
-    except ImportError:
-        print('for colors install termcolor module')
-
-
 def mega_colored(s, color):
-    if color is None:
+    if color is None or not has_colored:
         return s
 
-    return colored_console(s, color)
+    return colored(s, color)
 
 
 class Span:
