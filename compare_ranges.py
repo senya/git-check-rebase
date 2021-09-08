@@ -3,23 +3,8 @@ import sys
 from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
-from check_rebase_meta import Meta, subject_to_key
+from check_rebase_meta import Meta, subject_to_key, text_add_indent
 from span import Span
-
-
-def text_add_indent(text: str, indent: int) -> str:
-    assert indent > 0
-
-    ws = ' ' * indent
-    spl = '\n' + ws
-
-    if text.endswith('\n'):
-        text = text[:-1]
-        ending = '\n'
-    else:
-        ending = ''
-
-    return ws + text.replace('\n', spl) + ending
 
 
 class CommitRange:
