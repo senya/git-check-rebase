@@ -80,11 +80,11 @@ def are_commits_equal(c1, c2):
     return result
 
 
-def vimdiff_commits(c1, c2, c2_ind=None):
+def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
     c1_text = eat_numbers(git('show ' + c1), ignore_empty_lines=False)
     c2_text = eat_numbers(git('show ' + c2), ignore_empty_lines=False)
     if c1_text == c2_text:
-        return
+        return 200
 
     f1 = git_log1('/tmp/%h-%f.patch', c1)
     with open(f1, 'w') as f:
@@ -95,4 +95,20 @@ def vimdiff_commits(c1, c2, c2_ind=None):
     with open(f2, 'w') as f:
         f.write(c2_text)
 
-    return subprocess.run(['vimdiff', f1, f2]).returncode
+    cmd = ['vim', f2, '-c', ':diffthis', '-c', f':vsp {f1}', '-c', ':diffthis']
+    if comment_path:
+        cmd += ['-c', 'command GCheckRebaseToggleMeta '
+                f'let nr = bufwinnr("{comment_path}") | '
+                'if nr > 0 | '
+                'exe nr . "wincmd w" | wq | '
+                'else | '
+                f'top split {comment_path} | resize 5 | '
+                'endif',
+                '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta',
+                '-c', 'command GCheckRebaseOk wa! | cq 200',
+                '-c', 'cnoreabbrev ok GCheckRebaseOk']
+        with open(comment_path) as f:
+            if f.read().strip():
+                cmd += ['-c', ':GCheckRebaseToggleMeta']
+
+    return subprocess.run(cmd).returncode
