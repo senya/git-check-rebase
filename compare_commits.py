@@ -20,6 +20,7 @@ empty_line_changes_subs = [
 for e in empty_line_changes_subs:
     e[0] = re.compile(e[0], re.MULTILINE)
 
+
 def eat_numbers(patch, ignore_empty_lines=True):
     for e in eat_numbers_subs:
         patch = e[0].sub(e[1], patch)
@@ -30,8 +31,10 @@ def eat_numbers(patch, ignore_empty_lines=True):
 
     return patch
 
+
 def sorted_pair(a, b):
     return (a, b) if a <= b else (b, a)
+
 
 class EqualityCache:
     def __init__(self, fname):

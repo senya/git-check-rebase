@@ -1,9 +1,7 @@
-import sys
-
 from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
-from check_rebase_meta import Meta, subject_to_key, text_add_indent
+from check_rebase_meta import subject_to_key, text_add_indent
 from span import Span
 
 
@@ -18,11 +16,11 @@ class CommitRange:
         lines = git_log_table('%h %s', self.git_range)
 
         self.by_key = {}
-        for l in lines:
+        for line in lines:
             try:
-                h, s = l
-            except:
-                print(l)
+                h, s = line
+            except Exception:
+                print(line)
                 exit(0)
             key = subject_to_key(s, meta)
 
@@ -138,7 +136,8 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
             else:
                 line[0].klass = 'bug'
 
-        if meta_column and not any(cell.text for cell in line[:ind + len(ranges) - 1]):
+        if meta_column and \
+                not any(cell.text for cell in line[:ind + len(ranges) - 1]):
             line[0].text = '???'
             line[0].klass = 'unknown'
             assert not skip_this_line

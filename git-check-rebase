@@ -12,6 +12,7 @@ from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
 
+
 def print_legend(ranges, html):
     def_col = (
         ('bug-critical', 'Critical bugs'),
@@ -37,7 +38,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
 
     rows_full = rows == 'all'
     cols_full = columns == 'full'
-    if  html:
+    if html:
         fmt = 'html'
     elif color is None:
         fmt = 'colored' if sys.stdout.isatty() else 'plain'
@@ -136,23 +137,28 @@ if __name__ == '__main__':
                    'in form [<name>:]<git range or ref>')
     p.add_argument('--meta', help='optional, file with additional metadata')
     p.add_argument('--html', help='output in html format', action='store_true')
-    p.add_argument('--jira-issues', help='optional, comma-separated jira issues list')
+    p.add_argument('--jira-issues',
+                   help='optional, comma-separated jira issues list')
     p.add_argument('--jira', help='user:password@server')
     p.add_argument('--legend', help='print legend', action='store_true')
-    p.add_argument('--columns', help='which columns to show in table: "short" is default. '
-                   '"full" adds author and date columns and also column headers',
-                   default='short')
+    p.add_argument('--columns',
+                   help='which columns to show in table: "short" is default. '
+                   '"full" adds author and date columns and also column '
+                   'headers', default='short')
     p.add_argument('--rows', choices=('all', 'short'),
                    help='which rows to show in table: "all" is default. '
-                   '"short" omits rows where first column equal to the last column',
-                   default='all')
-    p.add_argument('--interactive', help='do interactive comparison of not-equal commits. '
-                   'For each commit to compare, vimdiff is started as a subprocess. User '
-                   'should exit it successfully (by :qa) to mark commits "ok", and with '
-                   'error (by :cq) to don\'t mark commits "ok"',
-                   action='store_true')
-    p.add_argument('--color', help='Highlight results. By default does coloring only when '
-                   'stdout is tty', action=argparse.BooleanOptionalAction, default=None)
+                   '"short" omits rows where first column equal to the last '
+                   'column', default='all')
+    p.add_argument('--interactive',
+                   help='do interactive comparison of not-equal commits. '
+                   'For each commit to compare, vimdiff is started as a '
+                   'subprocess. User should exit it successfully (by :qa) to '
+                   'mark commits "ok", and with error (by :cq) to don\'t '
+                   'mark commits "ok"', action='store_true')
+    p.add_argument('--color',
+                   help='Highlight results. By default does coloring only '
+                   'when stdout is tty', action=argparse.BooleanOptionalAction,
+                   default=None)
 
     args = p.parse_args()
 
