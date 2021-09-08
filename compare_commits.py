@@ -95,4 +95,4 @@ def vimdiff_commits(c1, c2, c2_ind=None):
     with open(f2, 'w') as f:
         f.write(c2_text)
 
-    return subprocess.run(['vimdiff', f1, f2])
+    return subprocess.run(['vimdiff', f1, f2]).returncode
