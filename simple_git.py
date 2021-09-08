@@ -7,8 +7,8 @@ def git(cmd):
                           check=True, stdout=subprocess.PIPE).stdout
 
 
-def git_log1(format, rev):
-    cmd = f"log -1 --format='{format}' {rev}"
+def git_log1(fmt, rev):
+    cmd = f"log -1 --format='{fmt}' {rev}"
     try:
         return git(cmd).strip()
     except subprocess.CalledProcessError as e:
@@ -16,9 +16,9 @@ def git_log1(format, rev):
         sys.exit(e.returncode)
 
 
-def git_log(format, param):
+def git_log(fmt, param):
     cmd = "log --reverse --date=format:'%d.%m.%y %H:%M' " \
-        "'--pretty=format:{}' {}".format(format, param)
+        "'--pretty=format:{}' {}".format(fmt, param)
 
     try:
         lines = git(cmd).split('\n')
@@ -29,17 +29,17 @@ def git_log(format, param):
     return lines
 
 
-def git_log_table_one_range(format, param, splitter):
-    lines = git_log(format.replace(' ', splitter), param)
+def git_log_table_one_range(fmt, param, splitter):
+    lines = git_log(fmt.replace(' ', splitter), param)
 
     return (line.split(splitter) for line in lines if line)
 
 
-def git_log_table(format, param, splitter='$%^@'):
+def git_log_table(fmt, param, splitter='$%^@'):
     lines = []
 
     for p in param.split(','):
-        lines += git_log_table_one_range(format, p, splitter)
+        lines += git_log_table_one_range(fmt, p, splitter)
 
     return lines
 

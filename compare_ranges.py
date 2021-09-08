@@ -1,3 +1,5 @@
+import sys
+
 from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
@@ -19,9 +21,9 @@ class CommitRange:
         for line in lines:
             try:
                 h, s = line
-            except Exception:
+            except ValueError:
                 print(line)
-                exit(0)
+                sys.exit(0)
             key = subject_to_key(s, meta)
 
             self.by_key[key] = h

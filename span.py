@@ -22,13 +22,13 @@ def mega_colored(s, color):
 
 
 class Span:
-    def __init__(self, text, format='colored', klass=None):
+    def __init__(self, text, fmt='colored', klass=None):
         self.text = text
         self.klass = klass
-        self.format = format
+        self.fmt = fmt
 
     def __str__(self):
-        if self.format == 'colored':
+        if self.fmt == 'colored':
             mapping = {
                 'bug-critical': 'red',
                 'bug-fixed': 'green',
@@ -40,7 +40,7 @@ class Span:
                 None: None
             }
             return mega_colored(self.text, mapping[self.klass])
-        elif self.format == 'html':
+        elif self.fmt == 'html':
             return colored_html(self.text, self.klass)
         else:
             return self.text

@@ -9,6 +9,7 @@ def parse_issue(j, key, commits, result):
 
     if issue.fields.issuetype.name == 'Epic':
         url = j.server_url + f'/rest/agile/1.0/epic/{key}/issue'
+        # pylint: disable=protected-access
         issues_in_epic = json_loads(j._session.get(url))['issues']
         for iss in issues_in_epic:
             parse_issue(j, iss['key'], commits, result)
