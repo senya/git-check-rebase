@@ -50,7 +50,7 @@ class Meta:
                         commit.add_checked_pair(*(line.split()[1:]))
                         continue
                     if line[0:2] == '  ':
-                        commit.add_comment(line)
+                        commit.add_comment(line[2:])
                         continue
 
                 if line[0] == '=':
