@@ -4,21 +4,19 @@ import subprocess
 
 from simple_git import git, git_get_git_dir, git_log1
 
-eat_numbers_subs = [
-    [r'^index .*', 'index <some index>'],
-    [r'^commit .*', 'commit <some commit>'],
-    [r'^Date:.*00', 'Date: <some date>'],
-    [r'^@@ .* @@', '@@ <some lines> @@'],
-]
-for e in eat_numbers_subs:
-    e[0] = re.compile(e[0], re.MULTILINE)
+eat_numbers_subs = tuple((re.compile(a, re.MULTILINE), b) for a, b in
+                         (
+                             (r'^index .*', 'index <some index>'),
+                             (r'^commit .*', 'commit <some commit>'),
+                             (r'^Date:.*00', 'Date: <some date>'),
+                             (r'^@@ .* @@', '@@ <some lines> @@'),
+                         ))
 
-empty_line_changes_subs = [
-    [r'^\+\n', ''],
-    [r'^\-\n', ''],
-]
-for e in empty_line_changes_subs:
-    e[0] = re.compile(e[0], re.MULTILINE)
+empty_line_changes_subs = tuple((re.compile(a, re.MULTILINE), b) for a, b in
+                                (
+                                    (r'^\+\n', ''),
+                                    (r'^\-\n', ''),
+                                ))
 
 
 def eat_numbers(patch, ignore_empty_lines=True):
