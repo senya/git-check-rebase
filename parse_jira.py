@@ -1,6 +1,6 @@
-import jira
+import jira  # type: ignore
 
-from jira.utils import json_loads
+from jira.utils import json_loads  # type: ignore
 
 
 def parse_issue(j, key, commits, result):
