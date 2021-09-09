@@ -147,7 +147,7 @@ def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
         if not skip_this_line:
             out.append([line[i] for i in range(len(line))])
 
-            if meta_column and key in meta.by_key and meta.by_key[key].comment:
+            if meta and key in meta.by_key and meta.by_key[key].comment:
                 out.append([''] * len(out[-1]))
                 out[-1][-1] = text_add_indent(meta.by_key[key].comment, 2)
 
