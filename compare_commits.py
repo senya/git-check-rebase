@@ -1,6 +1,9 @@
 import re
 import os
 import subprocess
+from dataclasses import dataclass
+from typing import Optional
+from tempfile import mkstemp
 
 from simple_git import git, git_get_git_dir, git_log1
 
@@ -82,13 +85,25 @@ def are_commits_equal(c1, c2):
     return result
 
 
-def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
+@dataclass
+class CompareResults:
+    """Type of vimdiff_commits result"""
+    code: int
+    comment: str = ''
+
+
+def compare_commits(c1, c2, c2_ind=None, comment=None):
+    """
+    @comment: if None, do simple comparison of two commits and nothing more.
+              if str (may be empty), create also temporary file for the
+              comment, so that user can modify the comment.
+    """
     c1_text = eat_numbers(git('format-patch --stdout -1 ' + c1),
                           ignore_empty_lines=False)
     c2_text = eat_numbers(git('format-patch --stdout -1 ' + c2),
                           ignore_empty_lines=False)
     if c1_text == c2_text:
-        return 200
+        return CompareResults(code=200)
 
     f1 = git_log1('/tmp/%h-%f.patch', c1)
     with open(f1, 'w') as f:
@@ -100,7 +115,12 @@ def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
         f.write(c2_text)
 
     cmd = ['vim', f2, '-c', ':diffthis', '-c', f':vsp {f1}', '-c', ':diffthis']
-    if comment_path:
+
+    if comment is not None:
+        comment_fd, comment_path = mkstemp()
+        with open(comment_fd, 'w') as f:
+            f.write(comment)
+
         cmd += ['-c', 'command GCheckRebaseToggleMeta '
                 f'let nr = bufwinnr("{comment_path}") | '
                 'if nr > 0 | '
@@ -111,10 +131,16 @@ def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
                 '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta',
                 '-c', 'command GCheckRebaseOk wa! | cq 200',
                 '-c', 'cnoreabbrev ok GCheckRebaseOk']
-        with open(comment_path) as f:
-            if f.read().strip():
-                cmd += ['-c', ':GCheckRebaseToggleMeta']
+        if comment.strip():
+            cmd += ['-c', ':GCheckRebaseToggleMeta']
 
         cmd += ['-c', ':norm gg']
 
-    return subprocess.run(cmd, check=False).returncode
+    code = subprocess.run(cmd, check=False).returncode
+
+    if comment is not None:
+        with open(comment_path) as f:
+            comment = f.read()
+        os.unlink(comment_path)
+
+    return CompareResults(code=code, comment=comment)

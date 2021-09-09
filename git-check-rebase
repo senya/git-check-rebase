@@ -6,7 +6,7 @@ import tabulate
 from check_rebase_meta import Meta
 from span import Span
 from compare_ranges import CommitRange, git_range_diff_table
-from compare_commits import vimdiff_commits
+from compare_commits import compare_commits
 from simple_git import git_log1
 from tempfile import mkstemp
 
@@ -79,16 +79,11 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                 continue
 
             subj = git_log1('%s', b)
-            comment_fd, comment_path = mkstemp()
-            with open(comment_fd, 'w') as f:
-                f.write(meta_obj.get_comment(subj))
-
-            code = vimdiff_commits(a.text, b.text, c2_ind=line_ind+1,
-                                   comment_path=comment_path)
-            with open(comment_path) as f:
-                ok_pair = (a.text, b.text) if code == 200 else None
-                meta_obj.update_meta(subj, f.read(), ok_pair)
-            if code not in (0, 200):
+            res = compare_commits(a.text, b.text, c2_ind=line_ind+1,
+                                  comment=meta_obj.get_comment(subj))
+            ok_pair = (a.text, b.text) if res.code == 200 else None
+            meta_obj.update_meta(subj, res.comment, ok_pair)
+            if res.code not in (0, 200):
                 break
 
         # Regenerate output as meta was updated
