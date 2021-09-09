@@ -6,6 +6,7 @@ from simple_git import git, git_get_git_dir, git_log1
 
 eat_numbers_subs = tuple((re.compile(a, re.MULTILINE), b) for a, b in
                          (
+                             (r'\AFrom .*', 'From <from line>'),
                              (r'^index .*', 'index <some index>'),
                              (r'^commit .*', 'commit <some commit>'),
                              (r'^Date:.*00', 'Date: <some date>'),
@@ -82,8 +83,10 @@ def are_commits_equal(c1, c2):
 
 
 def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
-    c1_text = eat_numbers(git('show ' + c1), ignore_empty_lines=False)
-    c2_text = eat_numbers(git('show ' + c2), ignore_empty_lines=False)
+    c1_text = eat_numbers(git('format-patch --stdout -1 ' + c1),
+                          ignore_empty_lines=False)
+    c2_text = eat_numbers(git('format-patch --stdout -1 ' + c2),
+                          ignore_empty_lines=False)
     if c1_text == c2_text:
         return 200
 
