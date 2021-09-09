@@ -81,9 +81,10 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
             subj = git_log1('%s', b)
             res = compare_commits(a.text, b.text, c2_ind=line_ind+1,
                                   comment=meta_obj.get_comment(subj))
-            ok_pair = (a.text, b.text) if res.code == 200 else None
+            assert not res.equal  # that would be bug in git_range_diff_table
+            ok_pair = (a.text, b.text) if res.ok else None
             meta_obj.update_meta(subj, res.comment, ok_pair)
-            if res.code not in (0, 200):
+            if res.stop:
                 break
 
         # Regenerate output as meta was updated

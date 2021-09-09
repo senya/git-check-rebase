@@ -87,8 +87,16 @@ def are_commits_equal(c1, c2):
 
 @dataclass
 class CompareResults:
-    """Type of vimdiff_commits result"""
-    code: int
+    """Type of vimdiff_commits result
+    @equal: commits are equal, nothing to compare. Interactive vim was not
+            started.
+    @ok: user marked the commit pair as OK
+    @stop: user requested stop of interactive processing
+    @comment: an updated comment
+    """
+    equal: bool = False
+    ok: bool = False
+    stop: bool = False
     comment: str = ''
 
 
@@ -103,7 +111,7 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
     c2_text = eat_numbers(git('format-patch --stdout -1 ' + c2),
                           ignore_empty_lines=False)
     if c1_text == c2_text:
-        return CompareResults(code=200)
+        return CompareResults(equal=True)
 
     f1 = git_log1('/tmp/%h-%f.patch', c1)
     with open(f1, 'w') as f:
@@ -143,4 +151,6 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
             comment = f.read()
         os.unlink(comment_path)
 
-    return CompareResults(code=code, comment=comment)
+    return CompareResults(ok=(code == 200),
+                          stop=(code not in (0, 200)),
+                          comment=comment)
