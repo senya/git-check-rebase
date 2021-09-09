@@ -100,6 +100,55 @@ class CompareResults:
     comment: str = ''
 
 
+def run_vim(f1: str, f2: str, comment_path: Optional[str],
+            meta_tab_opened: bool) -> CompareResults:
+    """Run vim to compare files @f1 and @f2 and return error code
+    @f1: path to file on the left side
+    @f2: path to file on the right side
+    @comment_path: if non-Null, add support of meta tab to edit @comment_path
+                   file
+    @meta_tab_opened: start with opened meta tab
+
+    additional vim interface:
+    :ok - save all, exit with code 200
+          (this leads to marking commits as OK and continue interactive
+          process)
+    :meta - toggle meta window to edit comment
+
+    also,
+    on exit with code 0 (by :q or :wq, etc..) interactive process will be
+        continued.
+    on exit with any other code (not 0 and not 200, for example by :cq)
+        interactive process will be stopped.
+
+    Returns CompareResults, where only @ok and @stop may be set, @equal is
+    always False and comment is ''
+    """
+    if comment_path is None:
+        assert meta_tab_opened is False
+
+    cmd = ['vim', f2, '-c', ':diffthis', '-c', f':vsp {f1}', '-c', ':diffthis']
+
+    if comment_path is not None:
+        cmd += ['-c', 'command GCheckRebaseToggleMeta '
+                f'let nr = bufwinnr("{comment_path}") | '
+                'if nr > 0 | '
+                'exe nr . "wincmd w" | wq | '
+                'else | '
+                f'top split {comment_path} | resize 5 | '
+                'endif',
+                '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta',
+                '-c', 'command GCheckRebaseOk wa! | cq 200',
+                '-c', 'cnoreabbrev ok GCheckRebaseOk']
+        if meta_tab_opened:
+            cmd += ['-c', ':GCheckRebaseToggleMeta']
+
+    cmd += ['-c', ':norm gg']
+
+    code = subprocess.run(cmd, check=False).returncode
+    return CompareResults(ok = code == 200, stop = code not in (0, 200))
+
+
 def compare_commits(c1, c2, c2_ind=None, comment=None):
     """
     @comment: if None, do simple comparison of two commits and nothing more.
@@ -122,35 +171,20 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
     with open(f2, 'w') as f:
         f.write(c2_text)
 
-    cmd = ['vim', f2, '-c', ':diffthis', '-c', f':vsp {f1}', '-c', ':diffthis']
-
-    if comment is not None:
+    if comment is None:
+        comment_path = None
+        meta_tab_opened = False
+    else:
         comment_fd, comment_path = mkstemp()
         with open(comment_fd, 'w') as f:
             f.write(comment)
+        meta_tab_opened = comment.strip() != ''
 
-        cmd += ['-c', 'command GCheckRebaseToggleMeta '
-                f'let nr = bufwinnr("{comment_path}") | '
-                'if nr > 0 | '
-                'exe nr . "wincmd w" | wq | '
-                'else | '
-                f'top split {comment_path} | resize 5 | '
-                'endif',
-                '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta',
-                '-c', 'command GCheckRebaseOk wa! | cq 200',
-                '-c', 'cnoreabbrev ok GCheckRebaseOk']
-        if comment.strip():
-            cmd += ['-c', ':GCheckRebaseToggleMeta']
-
-        cmd += ['-c', ':norm gg']
-
-    code = subprocess.run(cmd, check=False).returncode
+    res = run_vim(f1, f2, comment_path, meta_tab_opened)
 
     if comment is not None:
         with open(comment_path) as f:
-            comment = f.read()
+            res.comment = f.read()
         os.unlink(comment_path)
 
-    return CompareResults(ok=(code == 200),
-                          stop=(code not in (0, 200)),
-                          comment=comment)
+    return res
