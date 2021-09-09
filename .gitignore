@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+.mypy_cache/
+git_check_rebase.egg-info/
