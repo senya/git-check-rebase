@@ -115,4 +115,6 @@ def vimdiff_commits(c1, c2, c2_ind=None, comment_path=None):
             if f.read().strip():
                 cmd += ['-c', ':GCheckRebaseToggleMeta']
 
+        cmd += ['-c', ':norm gg']
+
     return subprocess.run(cmd, check=False).returncode
