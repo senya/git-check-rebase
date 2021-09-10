@@ -3,7 +3,7 @@ import os
 import subprocess
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from tempfile import mkstemp
 
 from simple_git import git, git_get_git_dir, git_log1, git_log
@@ -35,12 +35,12 @@ def eat_numbers(patch, ignore_empty_lines=True):
     return patch
 
 
-def sorted_pair(a, b):
+def sorted_pair(a: str, b: str) -> Tuple[str, str]:
     return (a, b) if a <= b else (b, a)
 
 
 class EqualityCache:
-    def __init__(self, fname):
+    def __init__(self, fname: str) -> None:
         self._dict = {}
         self.fname = fname
 
@@ -54,10 +54,10 @@ class EqualityCache:
         except FileNotFoundError:
             pass
 
-    def get(self, h1, h2):
+    def get(self, h1: str, h2: str) -> Optional[bool]:
         return self._dict.get(sorted_pair(h1, h2))
 
-    def add(self, h1, h2, equal):
+    def add(self, h1: str, h2: str, equal: bool) -> None:
         pair = sorted_pair(h1, h2)
         self._dict[pair] = equal
 
@@ -69,7 +69,7 @@ class EqualityCache:
 CACHE = EqualityCache(os.path.join(git_get_git_dir(), 'commit-equality-cache'))
 
 
-def are_commits_equal(c1, c2):
+def are_commits_equal(c1: str, c2: str) -> bool:
     if c1 == c2:
         return True
 
