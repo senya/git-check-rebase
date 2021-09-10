@@ -69,12 +69,12 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
         # No reason to search below ranges[2] base
         ranges[0] = ranges[1].split('..', 1)[0] + '..' + ranges[0]
 
-    ranges = [CommitRange(r, meta_obj) for r in ranges]
+    range_objs = [CommitRange(r, meta_obj) for r in ranges]
     if jira_issues:
         assert jira is not None
         jira_issues = jira_issues.split(',')
 
-    out = git_range_diff_table(ranges, meta_obj, jira, jira_issues, fmt,
+    out = git_range_diff_table(range_objs, meta_obj, jira, jira_issues, fmt,
                                headers=cols_full,
                                date_column=cols_full,
                                author_column=cols_full,
@@ -108,7 +108,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                 break
 
         # Regenerate output as meta was updated
-        out = git_range_diff_table(ranges, meta_obj, jira, jira_issues, fmt,
+        out = git_range_diff_table(range_objs, meta_obj, jira, jira_issues, fmt,
                                    headers=cols_full,
                                    date_column=cols_full,
                                    author_column=cols_full,
@@ -127,7 +127,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
               """)
 
     if legend:
-        print_legend(ranges, html)
+        print_legend(range_objs, html)
 
     if html:
         tablefmt = 'html'
