@@ -107,6 +107,21 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
             if res.stop:
                 break
 
+            restart_from = ''
+            if res.c1 and res.c1 != a.text:
+                restart_from = res.c1
+            if res.c2 and res.c2 != b.text:
+                restart_from = res.c2
+
+            if restart_from:
+                restart_from += '+'  # to start from next after it
+                main(ranges=ranges, meta=meta, html=html, jira=jira,
+                     jira_issues=jira_issues, legend=legend, columns=columns,
+                     rows=rows, interactive=interactive, color=color,
+                     ignore_commit_messages=ignore_commit_messages,
+                     start_from=restart_from, created_meta=created_meta)
+                return
+
         # Regenerate output as meta was updated
         out = git_range_diff_table(range_objs, meta_obj, jira, jira_issues, fmt,
                                    headers=cols_full,
