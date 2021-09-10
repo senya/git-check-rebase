@@ -72,7 +72,7 @@ class EqualityCache:
 CACHE = EqualityCache(os.path.join(git_get_git_dir(), 'commit-equality-cache'))
 
 
-def are_commits_equal(c1: str, c2: str, ignore_cmsg: bool = True) -> bool:
+def are_commits_equal(c1: str, c2: str, ignore_cmsg: bool) -> bool:
     """Compare commits
     With ignore_cmsg=True compare only code-changes of the commits.
     With ignore_cmsg=False compare code-changes and commit messages.

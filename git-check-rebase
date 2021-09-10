@@ -31,7 +31,7 @@ def print_legend(ranges, html):
 
 
 def main(ranges, meta, html, jira, jira_issues, legend, columns,
-         rows, interactive, color):
+         rows, interactive, color, ignore_commit_messages):
     if interactive and len(ranges) != 2:
         exit('--interactive supports only two ranges mode')
 
@@ -69,7 +69,8 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                                date_column=cols_full,
                                author_column=cols_full,
                                meta_column=cols_full,
-                               rows_full=rows_full)
+                               rows_full=rows_full,
+                               ignore_cmsg=ignore_commit_messages)
 
     created_meta = False
     if interactive:
@@ -97,7 +98,8 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                                    date_column=cols_full,
                                    author_column=cols_full,
                                    meta_column=cols_full,
-                                   rows_full=rows_full)
+                                   rows_full=rows_full,
+                                   ignore_cmsg=ignore_commit_messages)
 
     if html:
         print("""<!DOCTYPE html>
@@ -162,6 +164,9 @@ if __name__ == '__main__':
                    help='Highlight results. By default does coloring only '
                    'when stdout is tty', action=argparse.BooleanOptionalAction,
                    default=None)
+    p.add_argument('--ignore-commit-messages',
+                   help='Ignore commit message when compare commits',
+                   action='store_true')
 
     args = p.parse_args()
 
