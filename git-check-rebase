@@ -32,7 +32,7 @@ def print_legend(ranges, html):
 
 def main(ranges, meta, html, jira, jira_issues, legend, columns,
          rows, interactive, color, ignore_commit_messages,
-         start_from):
+         start_from, created_meta=False):
     if interactive and len(ranges) != 2:
         exit('--interactive supports only two ranges mode')
 
