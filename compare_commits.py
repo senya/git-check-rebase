@@ -221,7 +221,13 @@ class TriWay(Enum):
     RETRY = 3
 
 
-def tri_way(problem: str, retry: bool = True, stop_help='') -> TriWay:
+@dataclass
+class ApplyResult:
+    action: TriWay
+    new_hash: str = ''
+
+
+def tri_way(problem: str, retry: bool = True, stop_help='') -> ApplyResult:
     print(f"""You have modified a patch, but we can not update it: {problem}
 You have {'three' if retry else 'two'} choices:
 1. skip: don't apply the changes, continue interactive process
@@ -233,16 +239,16 @@ What to do? [1,2,3]: """)
         print("you should enter one number, 1 or 2 or 3: ")
         ans = input()
 
-    return TriWay(int(ans))
+    return ApplyResult(TriWay(int(ans)))
 
 
 def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
-                        updated_filtered_fname: str) -> TriWay:
+                        updated_filtered_fname: str) -> ApplyResult:
     with open(updated_filtered_fname) as f:
         updated_filtered = f.read()
 
     if updated_filtered == orig_filtered:
-        return TriWay.SKIP
+        return ApplyResult(TriWay.SKIP)
 
     branch = check_git_clean_branch()
     if not branch:
@@ -289,7 +295,7 @@ def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
             git('rebase --abort')
         return w
 
-    return TriWay.SKIP
+    return ApplyResult(TriWay.SKIP, applied_hash)
 
 
 def compare_commits(c1, c2, c2_ind=None, comment=None):
@@ -326,17 +332,17 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
     while True:
         res = run_vim(f1, f2, comment_path, meta_tab_opened)
 
-        w = apply_patch_changes(c1, c1_orig, c1_filtered, f1)
-        if w == TriWay.RETRY:
+        ar = apply_patch_changes(c1, c1_orig, c1_filtered, f1)
+        if ar.action == TriWay.RETRY:
             continue
-        elif w == TriWay.STOP:
+        elif ar.action == TriWay.STOP:
             res.stop = True
             break
 
-        w = apply_patch_changes(c2, c2_orig, c2_filtered, f2)
-        if w == TriWay.RETRY:
+        ar = apply_patch_changes(c2, c2_orig, c2_filtered, f2)
+        if ar.action == TriWay.RETRY:
             continue
-        elif w == TriWay.STOP:
+        elif ar.action == TriWay.STOP:
             res.stop = True
             break
 
