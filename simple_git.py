@@ -2,9 +2,10 @@ import sys
 import subprocess
 
 
-def git(cmd):
+def git(cmd, **args):
     return subprocess.run('git ' + cmd, shell=True, encoding='utf-8',
-                          check=True, stdout=subprocess.PIPE).stdout
+                          check=True, stdout=subprocess.PIPE,
+                          **args).stdout
 
 
 def git_log1(fmt, rev):
