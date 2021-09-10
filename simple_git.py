@@ -12,9 +12,9 @@ def git_log1(fmt, rev):
     cmd = f"log -1 --format='{fmt}' {rev}"
     try:
         return git(cmd).strip()
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         # assume, git will print error message
-        sys.exit(e.returncode)
+        sys.exit(f'git {cmd} failed')
 
 
 def git_log(fmt, param):
@@ -23,9 +23,9 @@ def git_log(fmt, param):
 
     try:
         lines = git(cmd).split('\n')
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         # assume, git will print error message
-        sys.exit(e.returncode)
+        sys.exit(f'git {cmd} failed')
 
     return lines
 
