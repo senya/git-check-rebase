@@ -112,6 +112,8 @@ class CompareResults:
     ok: bool = False
     stop: bool = False
     comment: str = ''
+    c1: str = ''
+    c2: str = ''
 
 
 def run_vim(f1: str, f2: str, comment_path: Optional[str],
@@ -339,12 +341,16 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
             res.stop = True
             break
 
+        res.c1 = ar.new_hash
+
         ar = apply_patch_changes(c2, c2_orig, c2_filtered, f2)
         if ar.action == TriWay.RETRY:
             continue
         elif ar.action == TriWay.STOP:
             res.stop = True
             break
+
+        res.c2 = ar.new_hash
 
         break
 
