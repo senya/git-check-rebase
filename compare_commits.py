@@ -39,6 +39,12 @@ def sorted_pair(a: str, b: str) -> Tuple[str, str]:
     return (a, b) if a <= b else (b, a)
 
 
+class IsEqual(Enum):
+    EQUAL = 1  # commits are equal, commit messages may differ
+    DIFFERS = 2  # commits are different
+    FULL_EQUAL = 3  # commits are equal as well as commit messages
+
+
 class EqualityCache:
     def __init__(self, fname: str) -> None:
         self._dict = {}
@@ -48,42 +54,49 @@ class EqualityCache:
             with open(fname) as f:
                 for line in f:
                     h1, h2, result = line.strip().split(' ', 2)
-                    assert result in ('equal', 'differs')
-
-                    self._dict[sorted_pair(h1, h2)] = result == 'equal'
+                    self._dict[sorted_pair(h1, h2)] = IsEqual[result]
         except FileNotFoundError:
             pass
 
-    def get(self, h1: str, h2: str) -> Optional[bool]:
+    def get(self, h1: str, h2: str) -> Optional[IsEqual]:
         return self._dict.get(sorted_pair(h1, h2))
 
-    def add(self, h1: str, h2: str, equal: bool) -> None:
+    def add(self, h1: str, h2: str, equal: IsEqual) -> None:
         pair = sorted_pair(h1, h2)
         self._dict[pair] = equal
 
         with open(self.fname, 'a') as f:
-            f.write('{} {} {}\n'.format(pair[0], pair[1],
-                                        'equal' if equal else 'differs'))
+            f.write('{} {} {}\n'.format(pair[0], pair[1], equal.name))
 
 
 CACHE = EqualityCache(os.path.join(git_get_git_dir(), 'commit-equality-cache'))
 
 
-def are_commits_equal(c1: str, c2: str) -> bool:
+def are_commits_equal(c1: str, c2: str, ignore_cmsg: bool = True) -> bool:
+    """Compare commits
+    With ignore_cmsg=True compare only code-changes of the commits.
+    With ignore_cmsg=False compare code-changes and commit messages.
+    Note that dates and authors are never compared.
+    """
     if c1 == c2:
         return True
 
-    cached = CACHE.get(c1, c2)
-    if cached is not None:
-        return cached
+    e = CACHE.get(c1, c2)
+    if e is None:
+        c1_text = eat_numbers(git('show --format= ' + c1))
+        c2_text = eat_numbers(git('show --format= ' + c2))
 
-    c1_text = eat_numbers(git('show --format= ' + c1))
-    c2_text = eat_numbers(git('show --format= ' + c2))
-    result = c1_text == c2_text
+        if c1_text != c2_text:
+            e = IsEqual.DIFFERS
+        elif git_log1('%B', c1) == git_log1('%B', c2):
+            e = IsEqual.FULL_EQUAL
+        else:
+            e = IsEqual.EQUAL
 
-    CACHE.add(c1, c2, result)
+        CACHE.add(c1, c2, e)
 
-    return result
+    return e == IsEqual.FULL_EQUAL or \
+        (ignore_cmsg and e == IsEqual.EQUAL)
 
 
 @dataclass
