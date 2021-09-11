@@ -1,10 +1,32 @@
 import sys
 
+from enum import Enum
+from dataclasses import dataclass
+from typing import List, Optional, Any, Union
+
 from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
-from check_rebase_meta import subject_to_key, text_add_indent
+from check_rebase_meta import subject_to_key, text_add_indent, Meta, CommitMeta
 from span import Span
+
+
+class TableIssue:
+    def __init__(self, jira_issue: Any) -> None:
+        self.key = jira_issue.key
+        self.critical = jira_issue.fields.priority.name in ('Critical',
+                                                            'Blocker')
+        self.fixed = jira_issue.fields.resolution and \
+            jira_issue.fields.resolution.name == 'Fixed'
+
+    def to_span(self, fmt: str = 'colored') -> Span:
+        if self.fixed:
+            klass = 'bug-fixed'
+        elif self.critical:
+            klass = 'bug-critical'
+        else:
+            klass = 'bug'
+        return Span(self.key, fmt, klass)
 
 
 class CommitRange:
@@ -29,131 +51,174 @@ class CommitRange:
             self.by_key[key] = h
 
 
-def git_range_diff_table(ranges, meta=None, jira=None, jira_issues=None,
-                         fmt='colored', headers=True, date_column=True,
-                         author_column=True, meta_column=True,
-                         rows_full=True, ignore_cmsg=True):
-    """
-    ranges: [CommitRange]
-    meta: Meta
-    jira_issues: [str]
-    fmt: 'colored' | 'html'
+class ComparisonResult(Enum):
+    NONE = 1
+    BASE = 2  # Some other cells are equal to this one
+    EQUAL = 3  # Equal to base, auto-checked
+    CHECKED = 4  # Equal to base, checked by hand
 
-    Returns list of lists with printable objects
-    """
 
-    if meta is None:
-        meta_column = False
+@dataclass
+class GitHashCell:
+    """Representation of one cell with commit hash"""
+    commit_hash: str
+    comp: ComparisonResult = ComparisonResult.NONE
 
-    seq = ranges[-1]
+    def to_span(self, fmt: str = 'colored') -> Span:
+        return Span(self.commit_hash, fmt, self.comp.name.lower())
 
-    log = git_log_table('%h %ad %an %s', seq.git_range)
 
-    if jira_issues:
-        log1 = git_log_table('%h %ad %an %s', seq.git_range)
+@dataclass
+class Row:
+    """Representation of on row if git-range-diff-table"""
+    commits: List[Optional[GitHashCell]]
+    issues: List[TableIssue]
+    date: str
+    author: str
+    subject: str
+    meta: Optional[CommitMeta] = None
+
+    def get_comment(self) -> str:
+        return '' if self.meta is None else self.meta.comment
+
+
+SpanTableCell = Union[None, str, Span]
+SpanTableRow = List[SpanTableCell]
+SpanTable = List[SpanTableRow]
+
+
+class Table:
+    def __init__(self, ranges: List[CommitRange],
+                 meta: Optional[Meta] = None) -> None:
+        """Prepare table with commits found by subjects using @meta information.
+        Link with @meta elements. (Modifying separate CommitMeta objects is OK,
+        but if you update @meta significantly, regenerated the table)
+        No comparison is done yet.
+        """
+
+        self.meta = meta
+        self.ranges = ranges
+        self.rows = []
+
+        git_range = ranges[-1].git_range
+        for h, ad, an, s in git_log_table('%h %ad %an %s', git_range):
+            if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
+                an = "Vladimir S-O"
+
+            row = Row(commits=[], issues=[], date=ad, author=an, subject=s)
+
+            key = subject_to_key(s, meta)
+            for r in ranges[:-1]:
+                if key in r.by_key:
+                    row.commits.append(GitHashCell(r.by_key[key]))
+                else:
+                    row.commits.append(None)
+
+            row.commits.append(GitHashCell(h))
+
+            if meta is not None:
+                row.meta = meta.by_key.get(key)
+
+            self.rows.append(row)
+
+    def _compare_commits(self, base: GitHashCell, other: GitHashCell,
+                         row_meta: Optional[CommitMeta],
+                         ign_cmsg: bool) -> None:
+        if are_commits_equal(base.commit_hash, other.commit_hash, ign_cmsg):
+            other.comp = ComparisonResult.EQUAL
+            base.comp = ComparisonResult.BASE
+            return
+
+        if row_meta is None:
+            return
+
+        for a, b in row_meta.checked:
+            for x, y in ((a, b), (b, a)):
+                if are_commits_equal(x, other.commit_hash, ign_cmsg) and \
+                        are_commits_equal(y, base.commit_hash, ign_cmsg):
+                    other.comp = ComparisonResult.CHECKED
+                    base.comp = ComparisonResult.BASE
+                    return
+
+    def do_comparison(self, ignore_cmsg: bool) -> None:
+        for row in self.rows:
+            base_ind = len(row.commits) - 1 if row.commits[0] is None else 0
+            base = row.commits[base_ind]
+            assert base is not None
+
+            for i, c in enumerate(row.commits):
+                if c is None or i == base_ind:
+                    continue
+
+                self._compare_commits(base, c, row.meta, ignore_cmsg)
+
+    def add_jira_info(self, jira, jira_issues):
         auth, server = jira.rsplit('@', 1)
         user, password = auth.split(':', 1)
-        jira = parse_jira('https://' + server, user, password, jira_issues,
-                          [line[-1] for line in log1])
-        jira = {subject_to_key(k): v for k, v in jira.items()}
+        jiramap = parse_jira('https://' + server, user, password, jira_issues,
+                             [r.subject for r in self.rows])
 
-    if headers:
-        out = [['<tag>']] if meta_column else [[]]
-        out[0] += [r.name for r in ranges]
-        if date_column:
-            out[0].append('DATE')
-        if author_column:
-            out[0].append('AUTHOR')
-        out[0].append('SUBJECT')
-    else:
-        out = []
-    for commit in log:
-        ad = commit[1]
-        an = commit[2]
-        if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
-            an = "Vladimir S-O"
-        s = commit[3]
-        key = subject_to_key(s, meta)
-        skip_this_line = not rows_full
-        line = [Span(r.by_key.get(key, ''), fmt) for r in ranges]
-        if date_column:
-            line.append(ad)
-        if author_column:
-            line.append(an)
-        line.append(s)
-        if meta_column:
-            text = meta.get_tag(key) or ''
-            klass = 'drop' if text.startswith('drop') else None
-            line.insert(0, Span(text, fmt, klass))
+        for row in self.rows:
+            issues = jiramap.get(row.subject)
+            if issues:
+                row.issues = [TableIssue(issue) for issue in issues]
 
-        ind = 1 if meta_column else 0
-        comp_ind = ind
-        if line[ind].text == '':
-            comp_ind = ind + len(ranges) - 1
-            skip_this_line = False
+    def to_spans(self, fmt: str = 'colored',
+                 headers: bool = True,
+                 date_column: bool = True,
+                 author_column: bool = True,
+                 meta_column: bool = True,
+                 rows_full: bool = True) -> SpanTable:
 
-        found = False
-        for i in range(ind + 1, ind + len(ranges)):
-            if i == comp_ind:
-                break
-            if line[i].text != '':
-                if are_commits_equal(line[comp_ind].text, line[i].text,
-                                     ignore_cmsg):
-                    found = True
-                    line[i].klass = 'matching'
-                elif meta and key in meta.by_key and meta.by_key[key].checked:
-                    for a, b in meta.by_key[key].checked:
-                        if (are_commits_equal(a, line[i].text,
-                                              ignore_cmsg) and
-                                are_commits_equal(b, line[comp_ind].text,
-                                                  ignore_cmsg)) or \
-                            (are_commits_equal(b, line[i].text,
-                                               ignore_cmsg) and
-                                are_commits_equal(a, line[comp_ind].text,
-                                                  ignore_cmsg)):
-                            found = True
-                            line[i].klass = 'checked'
-                            break
-        if found:
-            line[comp_ind].klass = 'matching'
+        out: SpanTable = []
+        line: SpanTableRow
 
-        skip_this_line = skip_this_line and (line[ind].klass == 'matching') \
-            and (line[ind + len(ranges) - 1].klass in ('matching', 'checked'))
+        if headers:
+            line = ['<tag>'] if meta_column else []
+            line += [r.name for r in self.ranges]
+            if date_column:
+                line.append('DATE')
+            if author_column:
+                line.append('AUTHOR')
+            line.append('SUBJECT')
+            out.append(line)
 
-        if jira and key in jira:
-            issues = jira[key]
-            crit = any(issue.fields.priority.name in ('Critical', 'Blocker')
-                       for issue in issues)
-            fixed = all(issue.fields.resolution and
-                        issue.fields.resolution.name == 'Fixed'
-                        for issue in issues)
-            text = ','.join(issue.key for issue in issues)
+        for row in self.rows:
+            if not rows_full and \
+                    all(c is not None and c.comp != ComparisonResult.NONE for
+                        c in row.commits):
+                continue
 
-            if line[0].text:
-                line[0].text += '(' + text + ')'
-            else:
-                line[0].text = text
+            line = []
+            if meta_column:
+                meta = []
+                if row.meta and row.meta.tag:
+                    klass = 'drop' if row.meta.tag.startswith('drop') else None
+                    meta.append(Span(row.meta.tag, fmt, klass))
+                meta += [issue.to_span() for issue in row.issues]
 
-            skip_this_line = skip_this_line and fixed
+                line.append(' '.join(map(str, meta)))
 
-            if fixed:
-                line[0].klass = 'bug-fixed'
-            elif crit:
-                line[0].klass = 'bug-critical'
-            else:
-                line[0].klass = 'bug'
+            for commit in row.commits:
+                if commit is None:
+                    line.append(None)
+                else:
+                    line.append(commit.to_span())
 
-        if meta_column and \
-                not any(cell.text for cell in line[:ind + len(ranges) - 1]):
-            line[0].text = '???'
-            line[0].klass = 'unknown'
-            assert not skip_this_line
+            if date_column:
+                line.append(row.date)
+            if author_column:
+                line.append(row.author)
+            line.append(row.subject)
 
-        if not skip_this_line:
-            out.append([line[i] for i in range(len(line))])
+            if meta_column and line[0] is None and \
+                    all(c is None for c in row.commits[:-1]):
+                line[0] = Span('???', fmt, 'unknown')
 
-            if meta and key in meta.by_key and meta.by_key[key].comment:
-                out.append([''] * len(out[-1]))
-                out[-1][-1] = text_add_indent(meta.by_key[key].comment, 2)
+            out.append(line)
+            if row.meta and row.meta.comment:
+                line = [None] * len(line)
+                line[-1] = text_add_indent(row.meta.comment, 2)
+                out.append(line)
 
-    return out
+        return out

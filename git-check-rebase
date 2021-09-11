@@ -4,11 +4,11 @@ import os
 import sys
 import tabulate
 
+import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, git_range_diff_table
+from compare_ranges import CommitRange, ComparisonResult
 from compare_commits import compare_commits
-from simple_git import git_log1
 from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
@@ -74,36 +74,34 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
         assert jira is not None
         jira_issues = jira_issues.split(',')
 
-    out = git_range_diff_table(range_objs, meta_obj, jira, jira_issues, fmt,
-                               headers=cols_full,
-                               date_column=cols_full,
-                               author_column=cols_full,
-                               meta_column=cols_full,
-                               rows_full=rows_full,
-                               ignore_cmsg=ignore_commit_messages)
+    tab = compare_ranges.Table(range_objs, meta_obj)
+    tab.do_comparison(ignore_commit_messages)
+    if jira:
+        tab.add_jira_info(jira, jira_issues)
 
-    created_meta = False
     if interactive:
-        tab = out[1:] if cols_full else out
-        col_ind = 1 if cols_full else 0
-
-        for line_ind, line in enumerate(tab):
-            a = line[col_ind]
-            b = line[col_ind + 1]
-            if start_from in (a.text, b.text):
+        for row_ind, row in enumerate(tab.rows):
+            if start_from in [c.commit_hash for c in row.commits
+                              if c is not None]:
                 start_from = None
                 if skip_start_from:
                     continue
-            if not a or not a.text or a.klass in ('matching', 'checked') \
-                    or start_from is not None:
+
+            a, b = row.commits
+            if a is None or a.comp != ComparisonResult.NONE:
                 continue
 
-            subj = git_log1('%s', b)
-            res = compare_commits(a.text, b.text, c2_ind=line_ind+1,
-                                  comment=meta_obj.get_comment(subj))
-            assert not res.equal  # that would be bug in git_range_diff_table
-            ok_pair = (a.text, b.text) if res.ok else None
-            meta_obj.update_meta(subj, res.comment, ok_pair)
+            res = compare_commits(a.commit_hash, b.commit_hash,
+                                  c2_ind=row_ind+1,
+                                  comment=row.get_comment())
+            assert not res.equal  # that would be bug in compare_ranges
+            if res.ok:
+                ok_pair = a.commit_hash, b.commit_hash
+                a.comp = ComparisonResult.BASE
+                b.comp = ComparisonResult.CHECKED
+            else:
+                ok_pair = None
+            meta_obj.update_meta(row.subject, res.comment, ok_pair)
             if res.stop:
                 break
 
@@ -122,14 +120,9 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                      start_from=restart_from, created_meta=created_meta)
                 return
 
-        # Regenerate output as meta was updated
-        out = git_range_diff_table(range_objs, meta_obj, jira, jira_issues, fmt,
-                                   headers=cols_full,
-                                   date_column=cols_full,
-                                   author_column=cols_full,
-                                   meta_column=cols_full,
-                                   rows_full=rows_full,
-                                   ignore_cmsg=ignore_commit_messages)
+    out = tab.to_spans(fmt=fmt, headers=cols_full, date_column=cols_full,
+                       author_column=cols_full, meta_column=cols_full,
+                       rows_full=rows_full)
 
     if html:
         print("""<!DOCTYPE html>

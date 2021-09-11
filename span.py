@@ -34,9 +34,11 @@ class Span:
                 'bug-fixed': 'green',
                 'bug': 'cyan',
                 'unknown': 'red',
-                'matching': 'green',
+                'equal': 'green',
+                'base': 'green',
                 'checked': 'yellow',
                 'drop': 'magenta',
+                'none': None,
                 None: None
             }
             return mega_colored(self.text, mapping[self.klass])
