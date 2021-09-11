@@ -100,8 +100,8 @@ def are_commits_equal(c1: str, c2: str, ignore_cmsg: bool) -> bool:
 
 
 @dataclass
-class CompareResults:
-    """Type of vimdiff_commits result
+class IntrCompRes:
+    """Type of interactive_compare_commits result
     @equal: commits are equal, nothing to compare. Interactive vim was not
             started.
     @ok: user marked the commit pair as OK
@@ -117,7 +117,7 @@ class CompareResults:
 
 
 def run_vim(f1: str, f2: str, comment_path: Optional[str],
-            meta_tab_opened: bool) -> CompareResults:
+            meta_tab_opened: bool) -> IntrCompRes:
     """Run vim to compare files @f1 and @f2 and return error code
     @f1: path to file on the left side
     @f2: path to file on the right side
@@ -137,7 +137,7 @@ def run_vim(f1: str, f2: str, comment_path: Optional[str],
     on exit with any other code (not 0 and not 200, for example by :cq)
         interactive process will be stopped.
 
-    Returns CompareResults, where only @ok and @stop may be set, @equal is
+    Returns IntrCompRes, where only @ok and @stop may be set, @equal is
     always False and comment is ''
     """
     if comment_path is None:
@@ -162,7 +162,7 @@ def run_vim(f1: str, f2: str, comment_path: Optional[str],
     cmd += ['-c', ':norm gg']
 
     code = subprocess.run(cmd, check=False).returncode
-    return CompareResults(ok = code == 200, stop = code not in (0, 200))
+    return IntrCompRes(ok = code == 200, stop = code not in (0, 200))
 
 
 def text_to_lines(text: str) -> List[str]:
@@ -300,7 +300,7 @@ def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
     return ApplyResult(TriWay.SKIP, applied_hash)
 
 
-def compare_commits(c1, c2, c2_ind=None, comment=None):
+def interactive_compare_commits(c1, c2, c2_ind=None, comment=None):
     """
     @comment: if None, do simple comparison of two commits and nothing more.
               if str (may be empty), create also temporary file for the
@@ -311,7 +311,7 @@ def compare_commits(c1, c2, c2_ind=None, comment=None):
     c2_orig = git('format-patch --stdout -1 ' + c2)
     c2_filtered = eat_numbers(c2_orig, ignore_empty_lines=False)
     if c1_filtered == c2_filtered:
-        return CompareResults(equal=True)
+        return IntrCompRes(equal=True)
 
     f1 = git_log1('/tmp/%h-%f.patch', c1)
     with open(f1, 'w') as f:

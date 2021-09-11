@@ -8,7 +8,7 @@ import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
 from compare_ranges import CommitRange, ComparisonResult
-from compare_commits import compare_commits
+from compare_commits import interactive_compare_commits
 from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
@@ -99,9 +99,9 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                 else:
                     a, b = base, c
 
-                res = compare_commits(a.commit_hash, b.commit_hash,
-                                      c2_ind=row_ind+1,
-                                      comment=row.get_comment())
+                res = interactive_compare_commits(a.commit_hash, b.commit_hash,
+                                                  c2_ind=row_ind+1,
+                                                  comment=row.get_comment())
                 assert not res.equal  # that would be bug in compare_ranges
                 if res.ok:
                     ok_pair = a.commit_hash, b.commit_hash
