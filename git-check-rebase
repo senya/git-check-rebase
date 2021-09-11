@@ -33,9 +33,6 @@ def print_legend(ranges, html):
 def main(ranges, meta, html, jira, jira_issues, legend, columns,
          rows, interactive, color, ignore_commit_messages,
          start_from, created_meta=False):
-    if interactive and len(ranges) != 2:
-        exit('--interactive supports only two ranges mode')
-
     if start_from:
         if not interactive:
             sys.exit('--start_from supported only in --interactive mode')
@@ -87,38 +84,52 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                 if skip_start_from:
                     continue
 
-            a, b = row.commits
-            if a is None or a.comp != ComparisonResult.NONE:
-                continue
+            base_ind = len(row.commits) - 1 if row.commits[0] is None else 0
+            base = row.commits[base_ind]
+            assert base is not None
 
-            res = compare_commits(a.commit_hash, b.commit_hash,
-                                  c2_ind=row_ind+1,
-                                  comment=row.get_comment())
-            assert not res.equal  # that would be bug in compare_ranges
-            if res.ok:
-                ok_pair = a.commit_hash, b.commit_hash
-                a.comp = ComparisonResult.BASE
-                b.comp = ComparisonResult.CHECKED
-            else:
-                ok_pair = None
-            meta_obj.update_meta(row.subject, res.comment, ok_pair)
-            if res.stop:
+            stop = False
+            for i, c in enumerate(row.commits):
+                if c is None or i == base_ind or \
+                        c.comp != ComparisonResult.NONE:
+                    continue
+
+                if i < base_ind:
+                    a, b = c, base
+                else:
+                    a, b = base, c
+
+                res = compare_commits(a.commit_hash, b.commit_hash,
+                                      c2_ind=row_ind+1,
+                                      comment=row.get_comment())
+                assert not res.equal  # that would be bug in compare_ranges
+                if res.ok:
+                    ok_pair = a.commit_hash, b.commit_hash
+                    base.comp = ComparisonResult.BASE
+                    c.comp = ComparisonResult.CHECKED
+                else:
+                    ok_pair = None
+                meta_obj.update_meta(row.subject, res.comment, ok_pair)
+                if res.stop:
+                    stop = True
+                    break
+
+                restart_from = ''
+                if res.c1 and res.c1 != a.text:
+                    restart_from = res.c1
+                if res.c2 and res.c2 != b.text:
+                    restart_from = res.c2
+
+                if restart_from:
+                    main(ranges=ranges, meta=meta, html=html, jira=jira,
+                         jira_issues=jira_issues, legend=legend,
+                         columns=columns,
+                         rows=rows, interactive=interactive, color=color,
+                         ignore_commit_messages=ignore_commit_messages,
+                         start_from=restart_from, created_meta=created_meta)
+                    return
+            if stop:
                 break
-
-            restart_from = ''
-            if res.c1 and res.c1 != a.text:
-                restart_from = res.c1
-            if res.c2 and res.c2 != b.text:
-                restart_from = res.c2
-
-            if restart_from:
-                restart_from += '+'  # to start from next after it
-                main(ranges=ranges, meta=meta, html=html, jira=jira,
-                     jira_issues=jira_issues, legend=legend, columns=columns,
-                     rows=rows, interactive=interactive, color=color,
-                     ignore_commit_messages=ignore_commit_messages,
-                     start_from=restart_from, created_meta=created_meta)
-                return
 
     out = tab.to_spans(fmt=fmt, headers=cols_full, date_column=cols_full,
                        author_column=cols_full, meta_column=cols_full,
