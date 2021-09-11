@@ -7,7 +7,7 @@ import tabulate
 import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, ComparisonResult
+from compare_ranges import CommitRange, CompRes
 from compare_commits import interactive_compare_commits
 from tempfile import mkstemp
 
@@ -91,7 +91,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
             stop = False
             for i, c in enumerate(row.commits):
                 if c is None or i == base_ind or \
-                        c.comp != ComparisonResult.NONE:
+                        c.comp != CompRes.NONE:
                     continue
 
                 if i < base_ind:
@@ -105,8 +105,8 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                 assert not res.equal  # that would be bug in compare_ranges
                 if res.ok:
                     ok_pair = a.commit_hash, b.commit_hash
-                    base.comp = ComparisonResult.BASE
-                    c.comp = ComparisonResult.CHECKED
+                    base.comp = CompRes.BASE
+                    c.comp = CompRes.CHECKED
                 else:
                     ok_pair = None
                 meta_obj.update_meta(row.subject, res.comment, ok_pair)

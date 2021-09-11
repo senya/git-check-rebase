@@ -59,7 +59,7 @@ class CommitRange:
             self.by_key[key] = h
 
 
-class ComparisonResult(Enum):
+class CompRes(Enum):
     NONE = 1
     BASE = 2  # Some other cells are equal to this one
     EQUAL = 3  # Equal to base, auto-checked
@@ -70,7 +70,7 @@ class ComparisonResult(Enum):
 class GitHashCell:
     """Representation of one cell with commit hash"""
     commit_hash: str
-    comp: ComparisonResult = ComparisonResult.NONE
+    comp: CompRes = CompRes.NONE
 
     def to_span(self, fmt: str = 'colored') -> Span:
         return Span(self.commit_hash, fmt, self.comp.name.lower())
@@ -133,8 +133,8 @@ class Table:
                          row_meta: Optional[CommitMeta],
                          ign_cmsg: bool) -> None:
         if are_commits_equal(base.commit_hash, other.commit_hash, ign_cmsg):
-            other.comp = ComparisonResult.EQUAL
-            base.comp = ComparisonResult.BASE
+            other.comp = CompRes.EQUAL
+            base.comp = CompRes.BASE
             return
 
         if row_meta is None:
@@ -144,8 +144,8 @@ class Table:
             for x, y in ((a, b), (b, a)):
                 if are_commits_equal(x, other.commit_hash, ign_cmsg) and \
                         are_commits_equal(y, base.commit_hash, ign_cmsg):
-                    other.comp = ComparisonResult.CHECKED
-                    base.comp = ComparisonResult.BASE
+                    other.comp = CompRes.CHECKED
+                    base.comp = CompRes.BASE
                     return
 
     def do_comparison(self, ignore_cmsg: bool) -> None:
@@ -193,7 +193,7 @@ class Table:
 
         for row in self.rows:
             if not rows_full and \
-                    all(c is not None and c.comp != ComparisonResult.NONE for
+                    all(c is not None and c.comp != CompRes.NONE for
                         c in row.commits):
                 continue
 
