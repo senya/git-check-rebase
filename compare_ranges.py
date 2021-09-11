@@ -2,7 +2,7 @@ import sys
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Any, Union
+from typing import List, Optional, Any, Union, Tuple
 
 from parse_jira import parse_jira
 from simple_git import git_log_table
@@ -29,21 +29,32 @@ class TableIssue:
         return Span(self.key, fmt, klass)
 
 
-class CommitRange:
-    def __init__(self, definition, meta=None):
-        if ':' in definition:
-            self.name, self.git_range = definition.split(':', 1)
-        else:
-            self.name = definition
-            self.git_range = definition
+def parse_range(definition: str, default_base: Optional[str] = None) -> \
+        Tuple[str, Optional[str], str]:
+    if ':' in definition:
+        name, definition = definition.split(':', 1)
+    else:
+        name = definition
 
-        if '..' in self.git_range:
-            self.base, self.top = self.git_range.split('..', 1)
-            if self.top == '':
-                self.top = 'HEAD'
-        else:
-            self.top = self.git_range
-            self.base = None
+    base: Optional[str]
+    if '..' in definition:
+        base, top = definition.split('..', 1)
+        if top == '':
+            top = 'HEAD'
+    else:
+        top = definition
+        base = default_base
+
+    return name, base, top
+
+
+class CommitRange:
+    def __init__(self, definition, meta=None, default_base=None):
+        self.name, self.base, self.top = parse_range(definition, default_base)
+
+        # We should never work with the whole branch, it is slow.
+        assert self.base is not None
+        self.git_range = f'{self.base}..{self.top}'
 
         lines = git_log_table('%h %s', self.git_range)
 

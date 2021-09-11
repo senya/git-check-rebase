@@ -7,7 +7,7 @@ import tabulate
 import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, CompRes
+from compare_ranges import CommitRange, CompRes, parse_range
 from compare_commits import interactive_compare_commits
 from tempfile import mkstemp
 
@@ -61,12 +61,12 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
     else:
         fmt = 'colored' if color else 'plain'
 
-    if len(ranges) == 2 and '..' in ranges[1] and \
-            '..' not in ranges[0]:
-        # No reason to search below ranges[2] base
-        ranges[0] = ranges[1].split('..', 1)[0] + '..' + ranges[0]
-
-    range_objs = [CommitRange(r, meta_obj) for r in ranges]
+    _, default_base, _ = parse_range(ranges[-1])
+    if default_base is None:
+        sys.exit('Last range must contain ".." separator. You shouldn\'t '
+                 'want print the whole branch.')
+    range_objs = [CommitRange(r, meta=meta_obj,
+                              default_base=default_base) for r in ranges]
     if jira_issues:
         assert jira is not None
         jira_issues = jira_issues.split(',')
