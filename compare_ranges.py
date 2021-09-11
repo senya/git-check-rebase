@@ -37,6 +37,14 @@ class CommitRange:
             self.name = definition
             self.git_range = definition
 
+        if '..' in self.git_range:
+            self.base, self.top = self.git_range.split('..', 1)
+            if self.top == '':
+                self.top = 'HEAD'
+        else:
+            self.top = self.git_range
+            self.base = None
+
         lines = git_log_table('%h %s', self.git_range)
 
         self.by_key = {}
