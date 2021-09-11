@@ -115,9 +115,9 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                     break
 
                 restart_from = ''
-                if res.c1 and res.c1 != a.text:
+                if res.c1 and res.c1 != a.commit_hash:
                     restart_from = res.c1
-                if res.c2 and res.c2 != b.text:
+                if res.c2 and res.c2 != b.commit_hash:
                     restart_from = res.c2
 
                 if restart_from:
