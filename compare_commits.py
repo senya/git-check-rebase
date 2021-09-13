@@ -244,7 +244,8 @@ What to do? [1,2,3]: """)
     return ApplyResult(TriWay(int(ans)))
 
 
-def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
+def apply_patch_changes(commit_hash: str, branch: str, orig_patch: str,
+                        orig_filtered: str,
                         updated_filtered_fname: str) -> ApplyResult:
     with open(updated_filtered_fname) as f:
         updated_filtered = f.read()
@@ -252,8 +253,7 @@ def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
     if updated_filtered == orig_filtered:
         return ApplyResult(TriWay.SKIP)
 
-    branch = check_git_clean_branch()
-    if not branch:
+    if not branch or branch != check_git_clean_branch():
         return tri_way('git is unclean or not at branch', retry=False)
 
     commit_hash = git_log1('%h', commit_hash)
@@ -300,12 +300,18 @@ def apply_patch_changes(commit_hash: str, orig_patch: str, orig_filtered: str,
     return ApplyResult(TriWay.SKIP, applied_hash)
 
 
-def interactive_compare_commits(c1, c2, c2_ind=None, comment=None):
+def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
+                                c2_ind=None, comment=None):
     """
     @comment: if None, do simple comparison of two commits and nothing more.
               if str (may be empty), create also temporary file for the
               comment, so that user can modify the comment.
+    @c1_branch: if not empty, modifying c1 commit is allowed in that c1_branch,
+                which must be current branch.
+    @c2_branch: similar for c2. @c1_branch and @c2_branch must not be non-empty
+                in the same time
     """
+    assert not (c1_branch and c2_branch)
     c1_orig = git('format-patch --stdout -1 ' + c1)
     c1_filtered = eat_numbers(c1_orig, ignore_empty_lines=False)
     c2_orig = git('format-patch --stdout -1 ' + c2)
@@ -334,7 +340,7 @@ def interactive_compare_commits(c1, c2, c2_ind=None, comment=None):
     while True:
         res = run_vim(f1, f2, comment_path, meta_tab_opened)
 
-        ar = apply_patch_changes(c1, c1_orig, c1_filtered, f1)
+        ar = apply_patch_changes(c1, c1_branch, c1_orig, c1_filtered, f1)
         if ar.action == TriWay.RETRY:
             continue
         elif ar.action == TriWay.STOP:
@@ -343,7 +349,7 @@ def interactive_compare_commits(c1, c2, c2_ind=None, comment=None):
 
         res.c1 = ar.new_hash
 
-        ar = apply_patch_changes(c2, c2_orig, c2_filtered, f2)
+        ar = apply_patch_changes(c2, c2_branch, c2_orig, c2_filtered, f2)
         if ar.action == TriWay.RETRY:
             continue
         elif ar.action == TriWay.STOP:

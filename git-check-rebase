@@ -8,7 +8,8 @@ import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
 from compare_ranges import CommitRange, CompRes, parse_range
-from compare_commits import interactive_compare_commits
+from compare_commits import interactive_compare_commits, \
+    check_git_clean_branch
 from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
@@ -72,6 +73,7 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
         tab.add_jira_info(jira, jira_issues)
 
     if interactive:
+        branch = check_git_clean_branch()
         for row_ind, row in enumerate(tab.rows):
             if row.commits[0] is None:
                 base_ind = len(row.commits) - 1
@@ -86,6 +88,11 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
             if start_from == base.commit_hash:
                 start_from = None
 
+            if branch and range_objs[base_ind].top in ('HEAD', branch):
+                base_rebase_branch = branch
+            else:
+                base_rebase_branch = ''
+
             stop = False
             for i in other_inds:
                 c = row.commits[i]
@@ -96,16 +103,23 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
                     start_from = None
                 if start_from is not None:
                     continue
+                if branch and range_objs[i].top in ('HEAD', branch):
+                    c_rebase_branch = branch
+                else:
+                    c_rebase_branch = ''
 
                 if c.comp != CompRes.NONE:
                     continue
 
                 if base_ind == 0:
                     a, b = base, c
+                    a_br, b_br = base_rebase_branch, c_rebase_branch
                 else:
                     a, b = c, base
+                    a_br, b_br = c_rebase_branch, base_rebase_branch
 
                 res = interactive_compare_commits(a.commit_hash, b.commit_hash,
+                                                  a_br, b_br,
                                                   c2_ind=row_ind+1,
                                                   comment=row.get_comment())
                 assert not res.equal  # that would be bug in compare_ranges
