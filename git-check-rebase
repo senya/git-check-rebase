@@ -99,14 +99,14 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
         self.parse_range_defs()
 
-        tab = compare_ranges.Table(self.ranges, self.meta)
-        tab.do_comparison(self.ignore_commit_messages)
+        self.tab = compare_ranges.Table(self.ranges, self.meta)
+        self.tab.do_comparison(self.ignore_commit_messages)
         if self.jira:
-            tab.add_jira_info(self.jira, self.jira_issues)
+            self.tab.add_jira_info(self.jira, self.jira_issues)
 
         if self.interactive:
             branch = check_git_clean_branch()
-            for row_ind, row in enumerate(tab.rows):
+            for row_ind, row in enumerate(self.tab.rows):
                 if row.commits[0] is None:
                     base_ind = len(row.commits) - 1
                     other_inds = range(base_ind)
@@ -174,11 +174,11 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if stop:
                     break
 
-        out = tab.to_spans(fmt=self.fmt, headers=self.cols_full,
-                           date_column=self.cols_full,
-                           author_column=self.cols_full,
-                           meta_column=self.cols_full,
-                           rows_full=self.rows_full)
+        out = self.tab.to_spans(fmt=self.fmt, headers=self.cols_full,
+                                date_column=self.cols_full,
+                                author_column=self.cols_full,
+                                meta_column=self.cols_full,
+                                rows_full=self.rows_full)
 
         if self.html:
             print("""<!DOCTYPE html>
