@@ -36,11 +36,6 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
     if start_from:
         if not interactive:
             sys.exit('--start_from supported only in --interactive mode')
-        if start_from[-1] == '+':
-            start_from = start_from[:-1]
-            skip_start_from = True
-        else:
-            skip_start_from = False
 
     if not meta:
         fd, meta = mkstemp()
@@ -81,8 +76,6 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
             if start_from in [c.commit_hash for c in row.commits
                               if c is not None]:
                 start_from = None
-                if skip_start_from:
-                    continue
 
             base_ind = len(row.commits) - 1 if row.commits[0] is None else 0
             base = row.commits[base_ind]
@@ -202,9 +195,7 @@ if __name__ == '__main__':
                    help='Ignore commit message when compare commits',
                    action='store_true')
     p.add_argument('--start-from', help='hash commit of right column to '
-                   'start from for interactive check. You also may use '
-                   '--start-from <hash>+ notation to start from the next '
-                   'after line after <hash>.')
+                   'start from for interactive check.')
 
     args = p.parse_args()
 
