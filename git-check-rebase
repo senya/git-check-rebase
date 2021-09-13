@@ -3,7 +3,8 @@
 import os
 import sys
 import tabulate
-from typing import List
+from typing import List, Optional, Type
+from types import TracebackType
 
 import compare_ranges
 from check_rebase_meta import Meta
@@ -33,10 +34,9 @@ def print_legend(ranges, html):
 
 
 class GitCheckRebase:
-    def __init__(self, ranges, meta_path, html, jira, jira_issues, legend, columns,
-                 rows, interactive, color, ignore_commit_messages):
+    def __init__(self, ranges, meta_path, html, jira, jira_issues, legend,
+                 columns, rows, interactive, color, ignore_commit_messages):
         self.ranges = ranges
-        self.meta_path = meta_path
         self.html = html
         self.jira = jira
         self.jira_issues = jira_issues
@@ -47,20 +47,33 @@ class GitCheckRebase:
         self.color = color
         self.ignore_commit_messages = ignore_commit_messages
 
-    def main(self, start_from, created_meta=False):
+        self.created_meta = not meta_path
+        if self.created_meta:
+            fd, meta_path = mkstemp()
+            os.close(fd)
+
+        self.meta = Meta(meta_path)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
+        if self.created_meta:
+            if os.stat(self.meta.fname).st_size == 0:
+                os.unlink(self.meta.fname)
+            else:
+                print(f"""
+
+Meta file is created: {self.meta.fname}
+You may use it with next run, specifying option --meta {self.meta.fname}""")
+
+    def main(self, start_from):
         if start_from:
             if not self.interactive:
                 sys.exit('--start_from supported only in --interactive mode')
-
-        if not self.meta_path:
-            fd, self.meta_path = mkstemp()
-            os.close(fd)
-            created_meta = True
-
-        try:
-            meta_obj = Meta(self.meta_path)
-        except OSError as e:
-            sys.exit(f'Failed to open "{self.meta_path}": {e.strerror}')
 
         rows_full = self.rows == 'all'
         cols_full = self.columns == 'full'
@@ -75,14 +88,14 @@ class GitCheckRebase:
         if default_base is None:
             sys.exit('Last range must contain ".." separator. You shouldn\'t '
                      'want print the whole branch.')
-        range_objs = [CommitRange(r, meta=meta_obj,
+        range_objs = [CommitRange(r, meta=self.meta,
                                   default_base=default_base)
                       for r in self.ranges]
         if self.jira_issues:
             assert self.jira is not None
             self.jira_issues = self.jira_issues.split(',')
 
-        tab = compare_ranges.Table(range_objs, meta_obj)
+        tab = compare_ranges.Table(range_objs, self.meta)
         tab.do_comparison(self.ignore_commit_messages)
         if self.jira:
             tab.add_jira_info(self.jira, self.jira_issues)
@@ -145,15 +158,14 @@ class GitCheckRebase:
                         c.comp = CompRes.CHECKED
                     else:
                         ok_pair = None
-                    meta_obj.update_meta(row.subject, res.comment, ok_pair)
+                    self.meta.update_meta(row.subject, res.comment, ok_pair)
                     if res.stop:
                         stop = True
                         break
 
                     restart_from = res.new_c1 or res.new_c2
                     if restart_from:
-                        self.main(start_from=restart_from,
-                                  created_meta=created_meta)
+                        self.main(start_from=restart_from)
                         return
                 if stop:
                     break
@@ -182,15 +194,6 @@ class GitCheckRebase:
         else:
             tablefmt = 'plain'
         print(tabulate.tabulate(out, tablefmt=tablefmt))
-
-        if created_meta:
-            if os.stat(self.meta_path).st_size == 0:
-                os.unlink(self.meta_path)
-            else:
-                print(f"""
-
-Meta file is created: {self.meta_path}
-You may use it with next run, specifying option --meta {self.meta_path}""")
 
 
 if __name__ == '__main__':
@@ -233,11 +236,16 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
-    gcr = GitCheckRebase(ranges=args.ranges, meta_path=args.meta,
-                         html=args.html,
-                         jira=args.jira, jira_issues=args.jira_issues,
-                         legend=args.legend, columns=args.columns,
-                         rows=args.rows, interactive=args.interactive,
-                         color=args.color,
-                         ignore_commit_messages=args.ignore_commit_messages)
-    gcr.main(start_from=args.start_from)
+    try:
+        gcr = GitCheckRebase(ranges=args.ranges, meta_path=args.meta,
+                             html=args.html,
+                             jira=args.jira, jira_issues=args.jira_issues,
+                             legend=args.legend, columns=args.columns,
+                             rows=args.rows, interactive=args.interactive,
+                             color=args.color,
+                             ignore_commit_messages=args.ignore_commit_messages)
+    except OSError as e:
+        sys.exit(f'Failed to open "{args.meta}": {e.strerror}')
+
+    with gcr:
+        gcr.main(start_from=args.start_from)
