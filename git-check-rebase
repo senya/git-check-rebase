@@ -3,7 +3,7 @@
 import os
 import sys
 import tabulate
-from typing import List, Optional, Type
+from typing import Optional, Type
 from types import TracebackType
 
 import compare_ranges
@@ -35,7 +35,7 @@ def print_legend(ranges, html):
 
 class GitCheckRebase:
     def __init__(self, range_defs, meta_path, html, jira, jira_issues, legend,
-                 columns, rows, interactive, color, ignore_commit_messages):
+                 columns, rows, interactive, color, ign_commit_messages):
         self.range_defs = range_defs
         self.jira = jira
         self.jira_issues = jira_issues
@@ -43,7 +43,7 @@ class GitCheckRebase:
         self.cols_full = columns == 'full'
         self.rows_full = rows == 'all'
         self.interactive = interactive
-        self.ignore_commit_messages = ignore_commit_messages
+        self.ign_commit_messages = ign_commit_messages
 
         if jira_issues:
             assert jira is not None
@@ -131,7 +131,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
         self.parse_range_defs()
 
         self.tab = compare_ranges.Table(self.ranges, self.meta)
-        self.tab.do_comparison(self.ignore_commit_messages)
+        self.tab.do_comparison(self.ign_commit_messages)
         if self.jira:
             self.tab.add_jira_info(self.jira, self.jira_issues)
 
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                              legend=args.legend, columns=args.columns,
                              rows=args.rows, interactive=args.interactive,
                              color=args.color,
-                             ignore_commit_messages=args.ignore_commit_messages)
+                             ign_commit_messages=args.ignore_commit_messages)
     except OSError as e:
         sys.exit(f'Failed to open "{args.meta}": {e.strerror}')
 
