@@ -37,15 +37,21 @@ class GitCheckRebase:
     def __init__(self, ranges, meta_path, html, jira, jira_issues, legend,
                  columns, rows, interactive, color, ignore_commit_messages):
         self.ranges = ranges
-        self.html = html
         self.jira = jira
         self.jira_issues = jira_issues
         self.legend = legend
-        self.columns = columns
-        self.rows = rows
+        self.cols_full = columns == 'full'
+        self.rows_full = rows == 'all'
         self.interactive = interactive
-        self.color = color
         self.ignore_commit_messages = ignore_commit_messages
+
+        self.html = html
+        if html:
+            self.fmt = 'html'
+        elif color is None:
+            self.fmt = 'colored' if sys.stdout.isatty() else 'plain'
+        else:
+            self.fmt = 'colored' if self.color else 'plain'
 
         self.created_meta = not meta_path
         if self.created_meta:
@@ -74,15 +80,6 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
         if start_from:
             if not self.interactive:
                 sys.exit('--start_from supported only in --interactive mode')
-
-        rows_full = self.rows == 'all'
-        cols_full = self.columns == 'full'
-        if self.html:
-            fmt = 'html'
-        elif self.color is None:
-            fmt = 'colored' if sys.stdout.isatty() else 'plain'
-        else:
-            fmt = 'colored' if self.color else 'plain'
 
         _, default_base, _ = parse_range(self.ranges[-1])
         if default_base is None:
@@ -170,9 +167,11 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if stop:
                     break
 
-        out = tab.to_spans(fmt=fmt, headers=cols_full, date_column=cols_full,
-                           author_column=cols_full, meta_column=cols_full,
-                           rows_full=rows_full)
+        out = tab.to_spans(fmt=self.fmt, headers=self.cols_full,
+                           date_column=self.cols_full,
+                           author_column=self.cols_full,
+                           meta_column=self.cols_full,
+                           rows_full=self.rows_full)
 
         if self.html:
             print("""<!DOCTYPE html>
