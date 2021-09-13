@@ -92,6 +92,37 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                                    default_base=self.right_range_base)
                        for r in self.range_defs]
 
+    def do_interactive_compare(self, row_ind: int, i1: int,
+                               i2: int, branch: str) -> str:
+        row = self.tab.rows[row_ind]
+        i1, i2 = sorted((i1, i2))
+
+        br = ['', '']
+        if branch:
+            if self.ranges[i1].top in ('HEAD', branch):
+                br[0] = branch
+            if self.ranges[i2].top in ('HEAD', branch):
+                br[1] = branch
+
+        h = [row.commits[i].commit_hash for i in (i1, i2)]
+        res = interactive_compare_commits(h[0], h[1], br[0], br[1],
+                                          c2_ind=row_ind+1,
+                                          comment=row.get_comment())
+        assert not res.equal  # that would be bug in compare_ranges
+        if res.ok:
+            if i1 == 0:
+                row.commits[i1].comp = CompRes.BASE
+                row.commits[i2].comp = CompRes.CHECKED
+            else:
+                row.commits[i2].comp = CompRes.BASE
+                row.commits[i1].comp = CompRes.CHECKED
+        self.meta.update_meta(row.subject, res.comment, h if res.ok else None)
+
+        if res.stop:
+            return 'STOP'
+
+        return res.new_c1 or res.new_c2
+
     def main(self, start_from):
         if start_from:
             if not self.interactive:
@@ -120,11 +151,6 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if start_from == base.commit_hash:
                     start_from = None
 
-                if branch and self.ranges[base_ind].top in ('HEAD', branch):
-                    base_rebase_branch = branch
-                else:
-                    base_rebase_branch = ''
-
                 stop = False
                 for i in other_inds:
                     c = row.commits[i]
@@ -135,41 +161,17 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                         start_from = None
                     if start_from is not None:
                         continue
-                    if branch and self.ranges[i].top in ('HEAD', branch):
-                        c_rebase_branch = branch
-                    else:
-                        c_rebase_branch = ''
 
                     if c.comp != CompRes.NONE:
                         continue
 
-                    if base_ind == 0:
-                        a, b = base, c
-                        a_br, b_br = base_rebase_branch, c_rebase_branch
-                    else:
-                        a, b = c, base
-                        a_br, b_br = c_rebase_branch, base_rebase_branch
-
-                    res = interactive_compare_commits(a.commit_hash,
-                                                      b.commit_hash,
-                                                      a_br, b_br,
-                                                      c2_ind=row_ind+1,
-                                                      comment=row.get_comment())
-                    assert not res.equal  # that would be bug in compare_ranges
-                    if res.ok:
-                        ok_pair = a.commit_hash, b.commit_hash
-                        base.comp = CompRes.BASE
-                        c.comp = CompRes.CHECKED
-                    else:
-                        ok_pair = None
-                    self.meta.update_meta(row.subject, res.comment, ok_pair)
-                    if res.stop:
+                    res = self.do_interactive_compare(row_ind, base_ind, i,
+                                                      branch)
+                    if res == 'STOP':
                         stop = True
                         break
-
-                    restart_from = res.new_c1 or res.new_c2
-                    if restart_from:
-                        self.main(start_from=restart_from)
+                    elif res:
+                        self.main(start_from=res)
                         return
                 if stop:
                     break
