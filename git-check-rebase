@@ -45,6 +45,11 @@ class GitCheckRebase:
         self.interactive = interactive
         self.ignore_commit_messages = ignore_commit_messages
 
+        if jira_issues:
+            assert jira is not None
+            self.jira = jira
+            self.jira_issues = jira_issues.split(',')
+
         self.html = html
         if html:
             self.fmt = 'html'
@@ -93,10 +98,6 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 sys.exit('--start_from supported only in --interactive mode')
 
         self.parse_range_defs()
-
-        if self.jira_issues:
-            assert self.jira is not None
-            self.jira_issues = self.jira_issues.split(',')
 
         tab = compare_ranges.Table(self.ranges, self.meta)
         tab.do_comparison(self.ignore_commit_messages)
