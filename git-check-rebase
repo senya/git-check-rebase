@@ -60,6 +60,11 @@ class GitCheckRebase:
 
         self.meta = Meta(meta_path)
 
+        _, self.right_range_base, _ = parse_range(self.range_defs[-1])
+        if self.right_range_base is None:
+            sys.exit('Last range must contain ".." separator. You shouldn\'t '
+                     'want print the whole branch.')
+
     def __enter__(self):
         return self
 
@@ -76,23 +81,24 @@ class GitCheckRebase:
 Meta file is created: {self.meta.fname}
 You may use it with next run, specifying option --meta {self.meta.fname}""")
 
+    def parse_range_defs(self):
+        """Must be called again, when git history changed"""
+        self.ranges = [CommitRange(r, meta=self.meta,
+                                   default_base=self.right_range_base)
+                       for r in self.range_defs]
+
     def main(self, start_from):
         if start_from:
             if not self.interactive:
                 sys.exit('--start_from supported only in --interactive mode')
 
-        _, default_base, _ = parse_range(self.range_defs[-1])
-        if default_base is None:
-            sys.exit('Last range must contain ".." separator. You shouldn\'t '
-                     'want print the whole branch.')
-        range_objs = [CommitRange(r, meta=self.meta,
-                                  default_base=default_base)
-                      for r in self.range_defs]
+        self.parse_range_defs()
+
         if self.jira_issues:
             assert self.jira is not None
             self.jira_issues = self.jira_issues.split(',')
 
-        tab = compare_ranges.Table(range_objs, self.meta)
+        tab = compare_ranges.Table(self.ranges, self.meta)
         tab.do_comparison(self.ignore_commit_messages)
         if self.jira:
             tab.add_jira_info(self.jira, self.jira_issues)
@@ -113,7 +119,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if start_from == base.commit_hash:
                     start_from = None
 
-                if branch and range_objs[base_ind].top in ('HEAD', branch):
+                if branch and self.ranges[base_ind].top in ('HEAD', branch):
                     base_rebase_branch = branch
                 else:
                     base_rebase_branch = ''
@@ -128,7 +134,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                         start_from = None
                     if start_from is not None:
                         continue
-                    if branch and range_objs[i].top in ('HEAD', branch):
+                    if branch and self.ranges[i].top in ('HEAD', branch):
                         c_rebase_branch = branch
                     else:
                         c_rebase_branch = ''
@@ -184,7 +190,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                   """)
 
         if self.legend:
-            print_legend(range_objs, self.html)
+            print_legend(self.ranges, self.html)
 
         if self.html:
             tablefmt = 'html'
