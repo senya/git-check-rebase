@@ -73,24 +73,37 @@ def main(ranges, meta, html, jira, jira_issues, legend, columns,
 
     if interactive:
         for row_ind, row in enumerate(tab.rows):
-            if start_from in [c.commit_hash for c in row.commits
-                              if c is not None]:
-                start_from = None
+            if row.commits[0] is None:
+                base_ind = len(row.commits) - 1
+                other_inds = range(base_ind)
+            else:
+                base_ind = 0
+                other_inds = range(1, len(row.commits))
 
-            base_ind = len(row.commits) - 1 if row.commits[0] is None else 0
             base = row.commits[base_ind]
             assert base is not None
 
+            if start_from == base.commit_hash:
+                start_from = None
+
             stop = False
-            for i, c in enumerate(row.commits):
-                if c is None or i == base_ind or \
-                        c.comp != CompRes.NONE:
+            for i in other_inds:
+                c = row.commits[i]
+                if c is None:
                     continue
 
-                if i < base_ind:
-                    a, b = c, base
-                else:
+                if start_from == c.commit_hash:
+                    start_from = None
+                if start_from is not None:
+                    continue
+
+                if c.comp != CompRes.NONE:
+                    continue
+
+                if base_ind == 0:
                     a, b = base, c
+                else:
+                    a, b = c, base
 
                 res = interactive_compare_commits(a.commit_hash, b.commit_hash,
                                                   c2_ind=row_ind+1,
