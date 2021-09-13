@@ -107,13 +107,14 @@ class IntrCompRes:
     @ok: user marked the commit pair as OK
     @stop: user requested stop of interactive processing
     @comment: an updated comment
+    @new_c1, @new_c2: set if successfully rebased
     """
     equal: bool = False
     ok: bool = False
     stop: bool = False
     comment: str = ''
-    c1: str = ''
-    c2: str = ''
+    new_c1: str = ''
+    new_c2: str = ''
 
 
 def run_vim(f1: str, f2: str, comment_path: Optional[str],
@@ -347,7 +348,7 @@ def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
             res.stop = True
             break
 
-        res.c1 = ar.new_hash
+        res.new_c1 = ar.new_hash
 
         ar = apply_patch_changes(c2, c2_branch, c2_orig, c2_filtered, f2)
         if ar.action == TriWay.RETRY:
@@ -356,7 +357,9 @@ def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
             res.stop = True
             break
 
-        res.c2 = ar.new_hash
+        res.new_c2 = ar.new_hash
+
+        assert not (res.new_c1 and res.new_c2)
 
         break
 
