@@ -33,10 +33,10 @@ def print_legend(ranges, html):
 
 
 class GitCheckRebase:
-    def __init__(self, ranges, meta, html, jira, jira_issues, legend, columns,
+    def __init__(self, ranges, meta_path, html, jira, jira_issues, legend, columns,
                  rows, interactive, color, ignore_commit_messages):
         self.ranges = ranges
-        self.meta = meta
+        self.meta_path = meta_path
         self.html = html
         self.jira = jira
         self.jira_issues = jira_issues
@@ -52,15 +52,15 @@ class GitCheckRebase:
             if not self.interactive:
                 sys.exit('--start_from supported only in --interactive mode')
 
-        if not self.meta:
-            fd, self.meta = mkstemp()
+        if not self.meta_path:
+            fd, self.meta_path = mkstemp()
             os.close(fd)
             created_meta = True
 
         try:
-            meta_obj = Meta(self.meta)
+            meta_obj = Meta(self.meta_path)
         except OSError as e:
-            sys.exit(f'Failed to open "{self.meta}": {e.strerror}')
+            sys.exit(f'Failed to open "{self.meta_path}": {e.strerror}')
 
         rows_full = self.rows == 'all'
         cols_full = self.columns == 'full'
@@ -184,13 +184,13 @@ class GitCheckRebase:
         print(tabulate.tabulate(out, tablefmt=tablefmt))
 
         if created_meta:
-            if os.stat(self.meta).st_size == 0:
-                os.unlink(self.meta)
+            if os.stat(self.meta_path).st_size == 0:
+                os.unlink(self.meta_path)
             else:
                 print(f"""
 
-Meta file is created: {self.meta}
-You may use it with next run, specifying option --meta {self.meta}""")
+Meta file is created: {self.meta_path}
+You may use it with next run, specifying option --meta {self.meta_path}""")
 
 
 if __name__ == '__main__':
@@ -233,7 +233,8 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
-    gcr = GitCheckRebase(ranges=args.ranges, meta=args.meta, html=args.html,
+    gcr = GitCheckRebase(ranges=args.ranges, meta_path=args.meta,
+                         html=args.html,
                          jira=args.jira, jira_issues=args.jira_issues,
                          legend=args.legend, columns=args.columns,
                          rows=args.rows, interactive=args.interactive,
