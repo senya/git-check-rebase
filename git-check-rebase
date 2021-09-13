@@ -3,6 +3,7 @@
 import os
 import sys
 import tabulate
+from typing import List
 
 import compare_ranges
 from check_rebase_meta import Meta
@@ -31,154 +32,165 @@ def print_legend(ranges, html):
             print('{} = {}{}'.format(r.name, r.git_range, br))
 
 
-def main(ranges, meta, html, jira, jira_issues, legend, columns,
-         rows, interactive, color, ignore_commit_messages,
-         start_from, created_meta=False):
-    if start_from:
-        if not interactive:
-            sys.exit('--start_from supported only in --interactive mode')
+class GitCheckRebase:
+    def __init__(self, ranges, meta, html, jira, jira_issues, legend, columns,
+                 rows, interactive, color, ignore_commit_messages):
+        self.ranges = ranges
+        self.meta = meta
+        self.html = html
+        self.jira = jira
+        self.jira_issues = jira_issues
+        self.legend = legend
+        self.columns = columns
+        self.rows = rows
+        self.interactive = interactive
+        self.color = color
+        self.ignore_commit_messages = ignore_commit_messages
 
-    if not meta:
-        fd, meta = mkstemp()
-        os.close(fd)
-        created_meta = True
+    def main(self, start_from, created_meta=False):
+        if start_from:
+            if not self.interactive:
+                sys.exit('--start_from supported only in --interactive mode')
 
-    try:
-        meta_obj = Meta(meta)
-    except OSError as e:
-        sys.exit(f'Failed to open "{meta}": {e.strerror}')
+        if not self.meta:
+            fd, self.meta = mkstemp()
+            os.close(fd)
+            created_meta = True
 
-    rows_full = rows == 'all'
-    cols_full = columns == 'full'
-    if html:
-        fmt = 'html'
-    elif color is None:
-        fmt = 'colored' if sys.stdout.isatty() else 'plain'
-    else:
-        fmt = 'colored' if color else 'plain'
+        try:
+            meta_obj = Meta(self.meta)
+        except OSError as e:
+            sys.exit(f'Failed to open "{self.meta}": {e.strerror}')
 
-    _, default_base, _ = parse_range(ranges[-1])
-    if default_base is None:
-        sys.exit('Last range must contain ".." separator. You shouldn\'t '
-                 'want print the whole branch.')
-    range_objs = [CommitRange(r, meta=meta_obj,
-                              default_base=default_base) for r in ranges]
-    if jira_issues:
-        assert jira is not None
-        jira_issues = jira_issues.split(',')
+        rows_full = self.rows == 'all'
+        cols_full = self.columns == 'full'
+        if self.html:
+            fmt = 'html'
+        elif self.color is None:
+            fmt = 'colored' if sys.stdout.isatty() else 'plain'
+        else:
+            fmt = 'colored' if self.color else 'plain'
 
-    tab = compare_ranges.Table(range_objs, meta_obj)
-    tab.do_comparison(ignore_commit_messages)
-    if jira:
-        tab.add_jira_info(jira, jira_issues)
+        _, default_base, _ = parse_range(self.ranges[-1])
+        if default_base is None:
+            sys.exit('Last range must contain ".." separator. You shouldn\'t '
+                     'want print the whole branch.')
+        range_objs = [CommitRange(r, meta=meta_obj,
+                                  default_base=default_base)
+                      for r in self.ranges]
+        if self.jira_issues:
+            assert self.jira is not None
+            self.jira_issues = self.jira_issues.split(',')
 
-    if interactive:
-        branch = check_git_clean_branch()
-        for row_ind, row in enumerate(tab.rows):
-            if row.commits[0] is None:
-                base_ind = len(row.commits) - 1
-                other_inds = range(base_ind)
-            else:
-                base_ind = 0
-                other_inds = range(1, len(row.commits))
+        tab = compare_ranges.Table(range_objs, meta_obj)
+        tab.do_comparison(self.ignore_commit_messages)
+        if self.jira:
+            tab.add_jira_info(self.jira, self.jira_issues)
 
-            base = row.commits[base_ind]
-            assert base is not None
+        if self.interactive:
+            branch = check_git_clean_branch()
+            for row_ind, row in enumerate(tab.rows):
+                if row.commits[0] is None:
+                    base_ind = len(row.commits) - 1
+                    other_inds = range(base_ind)
+                else:
+                    base_ind = 0
+                    other_inds = range(1, len(row.commits))
 
-            if start_from == base.commit_hash:
-                start_from = None
+                base = row.commits[base_ind]
+                assert base is not None
 
-            if branch and range_objs[base_ind].top in ('HEAD', branch):
-                base_rebase_branch = branch
-            else:
-                base_rebase_branch = ''
-
-            stop = False
-            for i in other_inds:
-                c = row.commits[i]
-                if c is None:
-                    continue
-
-                if start_from == c.commit_hash:
+                if start_from == base.commit_hash:
                     start_from = None
-                if start_from is not None:
-                    continue
-                if branch and range_objs[i].top in ('HEAD', branch):
-                    c_rebase_branch = branch
-                else:
-                    c_rebase_branch = ''
 
-                if c.comp != CompRes.NONE:
-                    continue
-
-                if base_ind == 0:
-                    a, b = base, c
-                    a_br, b_br = base_rebase_branch, c_rebase_branch
+                if branch and range_objs[base_ind].top in ('HEAD', branch):
+                    base_rebase_branch = branch
                 else:
-                    a, b = c, base
-                    a_br, b_br = c_rebase_branch, base_rebase_branch
+                    base_rebase_branch = ''
 
-                res = interactive_compare_commits(a.commit_hash, b.commit_hash,
-                                                  a_br, b_br,
-                                                  c2_ind=row_ind+1,
-                                                  comment=row.get_comment())
-                assert not res.equal  # that would be bug in compare_ranges
-                if res.ok:
-                    ok_pair = a.commit_hash, b.commit_hash
-                    base.comp = CompRes.BASE
-                    c.comp = CompRes.CHECKED
-                else:
-                    ok_pair = None
-                meta_obj.update_meta(row.subject, res.comment, ok_pair)
-                if res.stop:
-                    stop = True
+                stop = False
+                for i in other_inds:
+                    c = row.commits[i]
+                    if c is None:
+                        continue
+
+                    if start_from == c.commit_hash:
+                        start_from = None
+                    if start_from is not None:
+                        continue
+                    if branch and range_objs[i].top in ('HEAD', branch):
+                        c_rebase_branch = branch
+                    else:
+                        c_rebase_branch = ''
+
+                    if c.comp != CompRes.NONE:
+                        continue
+
+                    if base_ind == 0:
+                        a, b = base, c
+                        a_br, b_br = base_rebase_branch, c_rebase_branch
+                    else:
+                        a, b = c, base
+                        a_br, b_br = c_rebase_branch, base_rebase_branch
+
+                    res = interactive_compare_commits(a.commit_hash,
+                                                      b.commit_hash,
+                                                      a_br, b_br,
+                                                      c2_ind=row_ind+1,
+                                                      comment=row.get_comment())
+                    assert not res.equal  # that would be bug in compare_ranges
+                    if res.ok:
+                        ok_pair = a.commit_hash, b.commit_hash
+                        base.comp = CompRes.BASE
+                        c.comp = CompRes.CHECKED
+                    else:
+                        ok_pair = None
+                    meta_obj.update_meta(row.subject, res.comment, ok_pair)
+                    if res.stop:
+                        stop = True
+                        break
+
+                    restart_from = res.new_c1 or res.new_c2
+                    if restart_from:
+                        self.main(start_from=restart_from,
+                                  created_meta=created_meta)
+                        return
+                if stop:
                     break
 
-                restart_from = res.new_c1 or res.new_c2
-                if restart_from:
-                    main(ranges=ranges, meta=meta, html=html, jira=jira,
-                         jira_issues=jira_issues, legend=legend,
-                         columns=columns,
-                         rows=rows, interactive=interactive, color=color,
-                         ignore_commit_messages=ignore_commit_messages,
-                         start_from=restart_from, created_meta=created_meta)
-                    return
-            if stop:
-                break
+        out = tab.to_spans(fmt=fmt, headers=cols_full, date_column=cols_full,
+                           author_column=cols_full, meta_column=cols_full,
+                           rows_full=rows_full)
 
-    out = tab.to_spans(fmt=fmt, headers=cols_full, date_column=cols_full,
-                       author_column=cols_full, meta_column=cols_full,
-                       rows_full=rows_full)
+        if self.html:
+            print("""<!DOCTYPE html>
+                  <meta charset="utf-8"/>
+                  <style>
+                  body {
+                     font-family: monospace;
+                  }
+                  </style>
+                  """)
 
-    if html:
-        print("""<!DOCTYPE html>
-              <meta charset="utf-8"/>
-              <style>
-              body {
-                 font-family: monospace;
-              }
-              </style>
-              """)
+        if self.legend:
+            print_legend(range_objs, self.html)
 
-    if legend:
-        print_legend(range_objs, html)
-
-    if html:
-        tablefmt = 'html'
-    elif legend:
-        tablefmt = 'simple'
-    else:
-        tablefmt = 'plain'
-    print(tabulate.tabulate(out, tablefmt=tablefmt))
-
-    if created_meta:
-        if os.stat(meta).st_size == 0:
-            os.unlink(meta)
+        if self.html:
+            tablefmt = 'html'
+        elif self.legend:
+            tablefmt = 'simple'
         else:
-            print(f"""
+            tablefmt = 'plain'
+        print(tabulate.tabulate(out, tablefmt=tablefmt))
 
-Meta file is created: {meta}
-You may use it with next run, specifying option --meta {meta}""")
+        if created_meta:
+            if os.stat(self.meta).st_size == 0:
+                os.unlink(self.meta)
+            else:
+                print(f"""
+
+Meta file is created: {self.meta}
+You may use it with next run, specifying option --meta {self.meta}""")
 
 
 if __name__ == '__main__':
@@ -221,4 +233,10 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
-    main(**vars(args))
+    gcr = GitCheckRebase(ranges=args.ranges, meta=args.meta, html=args.html,
+                         jira=args.jira, jira_issues=args.jira_issues,
+                         legend=args.legend, columns=args.columns,
+                         rows=args.rows, interactive=args.interactive,
+                         color=args.color,
+                         ignore_commit_messages=args.ignore_commit_messages)
+    gcr.main(start_from=args.start_from)
