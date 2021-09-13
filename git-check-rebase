@@ -34,9 +34,9 @@ def print_legend(ranges, html):
 
 
 class GitCheckRebase:
-    def __init__(self, ranges, meta_path, html, jira, jira_issues, legend,
+    def __init__(self, range_defs, meta_path, html, jira, jira_issues, legend,
                  columns, rows, interactive, color, ignore_commit_messages):
-        self.ranges = ranges
+        self.range_defs = range_defs
         self.jira = jira
         self.jira_issues = jira_issues
         self.legend = legend
@@ -81,13 +81,13 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
             if not self.interactive:
                 sys.exit('--start_from supported only in --interactive mode')
 
-        _, default_base, _ = parse_range(self.ranges[-1])
+        _, default_base, _ = parse_range(self.range_defs[-1])
         if default_base is None:
             sys.exit('Last range must contain ".." separator. You shouldn\'t '
                      'want print the whole branch.')
         range_objs = [CommitRange(r, meta=self.meta,
                                   default_base=default_base)
-                      for r in self.ranges]
+                      for r in self.range_defs]
         if self.jira_issues:
             assert self.jira is not None
             self.jira_issues = self.jira_issues.split(',')
@@ -236,7 +236,7 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     try:
-        gcr = GitCheckRebase(ranges=args.ranges, meta_path=args.meta,
+        gcr = GitCheckRebase(range_defs=args.ranges, meta_path=args.meta,
                              html=args.html,
                              jira=args.jira, jira_issues=args.jira_issues,
                              legend=args.legend, columns=args.columns,
