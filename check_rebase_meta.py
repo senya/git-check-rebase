@@ -36,7 +36,9 @@ class CommitMeta:
         self.comment = ''
         self.checked = []
 
-    def add_comment(self, comment):
+    def add_comment_line(self, comment):
+        if self.comment:
+            self.comment += '\n'
         self.comment += comment
 
     def add_checked_pair(self, h1, h2):
@@ -111,7 +113,7 @@ class Meta:
                         commit.add_checked_pair(*(line.split()[1:]))
                         continue
                     if line[0:2] == '  ':
-                        commit.add_comment(line[2:])
+                        commit.add_comment_line(line[2:])
                         continue
 
                 if line[0] == '=':
