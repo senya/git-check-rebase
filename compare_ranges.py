@@ -95,10 +95,17 @@ class Row:
     date: str
     author: str
     subject: str
-    meta: Optional[CommitMeta] = None
+    _meta: Optional[Meta]
+    _key: str
 
     def get_comment(self) -> str:
         return '' if self.meta is None else self.meta.comment
+
+    @property
+    def meta(self) -> Optional[CommitMeta]:
+        if self._meta is None:
+            return None
+        return self._meta.by_key.get(self._key)
 
 
 SpanTableCell = Union[None, str, Span]
@@ -124,9 +131,10 @@ class Table:
             if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
                 an = "Vladimir S-O"
 
-            row = Row(commits=[], issues=[], date=ad, author=an, subject=s)
-
             key = subject_to_key(s, meta)
+            row = Row(commits=[], issues=[], date=ad, author=an, subject=s,
+                      _meta=meta, _key=key)
+
             for r in ranges[:-1]:
                 if key in r.by_key:
                     row.commits.append(GitHashCell(r.by_key[key]))
@@ -134,9 +142,6 @@ class Table:
                     row.commits.append(None)
 
             row.commits.append(GitHashCell(h))
-
-            if meta is not None:
-                row.meta = meta.by_key.get(key)
 
             self.rows.append(row)
 
