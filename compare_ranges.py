@@ -192,6 +192,8 @@ class Table:
                  date_column: bool = True,
                  author_column: bool = True,
                  meta_column: bool = True,
+                 index_column: bool = False,
+                 commits_columns: bool = True,
                  rows_full: bool = True) -> SpanTable:
 
         out: SpanTable = []
@@ -207,13 +209,17 @@ class Table:
             line.append('SUBJECT')
             out.append(line)
 
-        for row in self.rows:
+        index_len = len(str(len(self.rows)))
+
+        for row_ind, row in enumerate(self.rows):
             if not rows_full and \
                     all(c is not None and c.comp != CompRes.NONE for
                         c in row.commits):
                 continue
 
             line = []
+            if index_column:
+                line.append(f'{row_ind + 1:0{index_len}}')
             if meta_column:
                 meta = []
                 if row.meta and row.meta.tag:
@@ -223,11 +229,12 @@ class Table:
 
                 line.append(' '.join(map(str, meta)))
 
-            for commit in row.commits:
-                if commit is None:
-                    line.append(None)
-                else:
-                    line.append(commit.to_span())
+            if commits_columns:
+                for commit in row.commits:
+                    if commit is None:
+                        line.append(None)
+                    else:
+                        line.append(commit.to_span())
 
             if date_column:
                 line.append(row.date)

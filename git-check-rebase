@@ -40,10 +40,16 @@ class GitCheckRebase:
         self.jira = jira
         self.jira_issues = jira_issues
         self.legend = legend
-        self.cols_full = columns == 'full'
         self.rows_full = rows == 'all'
         self.interactive = interactive
         self.ign_commit_messages = ign_commit_messages
+
+        if columns is None:
+            columns = 'short'
+        self.columns = columns.split(',')
+        self.cols_full = 'full' in self.columns
+        self.cols_commits = self.cols_full or 'short' in self.columns or \
+            'commits' in self.columns
 
         if jira_issues:
             assert jira is not None
@@ -180,6 +186,8 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                                 date_column=self.cols_full,
                                 author_column=self.cols_full,
                                 meta_column=self.cols_full,
+                                index_column=('index' in self.columns),
+                                commits_columns=self.cols_commits,
                                 rows_full=self.rows_full)
 
         if self.html:
