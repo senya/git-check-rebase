@@ -108,6 +108,12 @@ class Row:
         return self._meta.by_key.get(self._key)
 
 
+class RowsHideLevel(Enum):
+    SHOW_ALL = 1
+    HIDE_EQUAL = 2
+    HIDE_CHECKED = 3
+
+
 SpanTableCell = Union[None, str, Span]
 SpanTableRow = List[SpanTableCell]
 SpanTable = List[SpanTableRow]
@@ -194,7 +200,8 @@ class Table:
                  meta_column: bool = True,
                  index_column: bool = False,
                  commits_columns: bool = True,
-                 rows_full: bool = True) -> SpanTable:
+                 rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
+            -> SpanTable:
 
         out: SpanTable = []
         line: SpanTableRow
@@ -212,8 +219,13 @@ class Table:
         index_len = len(str(len(self.rows)))
 
         for row_ind, row in enumerate(self.rows):
-            if not rows_full and \
+            if rows_hide_level.value >= RowsHideLevel.HIDE_CHECKED.value and \
                     all(c is not None and c.comp != CompRes.NONE for
+                        c in row.commits):
+                continue
+            if rows_hide_level.value >= RowsHideLevel.HIDE_EQUAL.value and \
+                    all(c is not None and
+                        c.comp in (CompRes.BASE, CompRes.EQUAL) for
                         c in row.commits):
                 continue
 

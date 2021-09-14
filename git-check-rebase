@@ -9,7 +9,8 @@ from types import TracebackType
 import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, CompRes, parse_range
+from compare_ranges import CommitRange, CompRes, parse_range, \
+    RowsHideLevel
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 from tempfile import mkstemp
@@ -35,12 +36,13 @@ def print_legend(ranges, html):
 
 class GitCheckRebase:
     def __init__(self, range_defs, meta_path, html, jira, jira_issues, legend,
-                 columns, rows, interactive, color, ign_commit_messages):
+                 columns, rows_hide_level, interactive, color,
+                 ign_commit_messages):
         self.range_defs = range_defs
         self.jira = jira
         self.jira_issues = jira_issues
         self.legend = legend
-        self.rows_full = rows == 'all'
+        self.rows_hide_level = rows_hide_level
         self.interactive = interactive
         self.ign_commit_messages = ign_commit_messages
 
@@ -188,7 +190,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                                 meta_column=self.cols_full,
                                 index_column=('index' in self.columns),
                                 commits_columns=self.cols_commits,
-                                rows_full=self.rows_full)
+                                rows_hide_level=self.rows_hide_level)
 
         if self.html:
             print("""<!DOCTYPE html>
@@ -230,10 +232,10 @@ if __name__ == '__main__':
                    help='which columns to show in table: "short" is default. '
                    '"full" adds author and date columns and also column '
                    'headers', default='short')
-    p.add_argument('--rows', choices=('all', 'short'),
-                   help='which rows to show in table: "all" is default. '
-                   '"short" omits rows where first column equal to the last '
-                   'column', default='all')
+    p.add_argument('--rows-hide-level',
+                   choices=[x.name.lower() for x in RowsHideLevel],
+                   help='which rows to hide in table: "show_all" is default. ',
+                   default=RowsHideLevel.SHOW_ALL.name.lower())
     p.add_argument('--interactive',
                    help='do interactive comparison of not-equal commits. '
                    'For each commit to compare, vimdiff is started as a '
@@ -252,12 +254,14 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
+    rows_hide_level = RowsHideLevel[args.rows_hide_level.upper()]
     try:
         gcr = GitCheckRebase(range_defs=args.ranges, meta_path=args.meta,
                              html=args.html,
                              jira=args.jira, jira_issues=args.jira_issues,
                              legend=args.legend, columns=args.columns,
-                             rows=args.rows, interactive=args.interactive,
+                             rows_hide_level=rows_hide_level,
+                             interactive=args.interactive,
                              color=args.color,
                              ign_commit_messages=args.ignore_commit_messages)
     except OSError as e:
