@@ -214,8 +214,8 @@ def check_git_clean_branch() -> str:
     if not branch:
         return ''
 
-    status = git('status -uno --porcelain=v1 -b').strip()
-    if status != f'## {branch}':
+    diff = git('diff --shortstat HEAD').strip()
+    if diff:
         return ''
 
     return branch
