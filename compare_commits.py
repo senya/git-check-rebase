@@ -233,19 +233,29 @@ class ApplyResult:
     new_hash: str = ''
 
 
-def tri_way(problem: str, retry: bool = True, stop_help='') -> ApplyResult:
-    print(f"""You have modified a patch, but we can not update it: {problem}
-You have {'three' if retry else 'two'} choices:
-1. skip: don't apply the changes, continue interactive process
-2. stop: stop the interactive process now. {stop_help}
-{'3. retry: review same commit again and fix your changes' if retry else ''}
-What to do? [1,2,3]: """)
-    ans = input()
-    while ans not in ('1', '2', '3'):
-        print("you should enter one number, 1 or 2 or 3: ")
-        ans = input()
+def tri_way(problem: str, retry: bool = True,
+            stop_help: str = '') -> ApplyResult:
+    print('You have modified a patch, but we can not update it:', problem)
+    print(f'You have {"three" if retry else "two"} choices:')
+    print(f"{TriWay.SKIP.value}. skip: don't apply the changes, "
+          "continue interactive process")
+    print(f'{TriWay.STOP.value}. stop: stop the interactive process now.',
+          stop_help)
+    if retry:
+        print(f'{TriWay.RETRY.value}. retry: review same commit again and '
+              'fix your changes')
 
-    return ApplyResult(TriWay(int(ans)))
+    expected = f'{TriWay.SKIP.value}, {TriWay.STOP.value}'
+    if retry:
+        expected += f', {TriWay.RETRY.value}'
+
+    while True:
+        print(f'What to do? [{expected}]: ', end='')
+        ans = input()
+        try:
+            return ApplyResult(TriWay(int(ans)))
+        except (KeyError, ValueError):
+            pass
 
 
 def apply_patch_changes(commit_hash: str, branch: str, orig_patch: str,
