@@ -57,6 +57,9 @@ class EqualityCache:
                     self._dict[sorted_pair(h1, h2)] = IsEqual[result]
         except FileNotFoundError:
             pass
+        except (KeyError, ValueError):
+            # Most probably old format detected
+            os.unlink(fname)
 
     def get(self, h1: str, h2: str) -> Optional[IsEqual]:
         return self._dict.get(sorted_pair(h1, h2))
