@@ -313,9 +313,9 @@ def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
                 in the same time
     """
     assert not (c1_branch and c2_branch)
-    c1_orig = git('format-patch --stdout -1 ' + c1)
+    c1_orig = git('show --format=email ' + c1)
     c1_filtered = eat_numbers(c1_orig, ignore_empty_lines=False)
-    c2_orig = git('format-patch --stdout -1 ' + c2)
+    c2_orig = git('show --format=email ' + c2)
     c2_filtered = eat_numbers(c2_orig, ignore_empty_lines=False)
     if c1_filtered == c2_filtered:
         return IntrCompRes(equal=True)
