@@ -157,11 +157,12 @@ def run_vim(f1: str, f2: str, comment_path: Optional[str],
                 'else | '
                 f'top split {comment_path} | resize 5 | '
                 'endif',
-                '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta',
-                '-c', 'command GCheckRebaseOk wa! | cq 200',
-                '-c', 'cnoreabbrev ok GCheckRebaseOk']
+                '-c', 'cnoreabbrev meta GCheckRebaseToggleMeta']
         if meta_tab_opened:
             cmd += ['-c', ':GCheckRebaseToggleMeta']
+
+    cmd += ['-c', 'command GCheckRebaseOk wa! | cq 200',
+            '-c', 'cnoreabbrev ok GCheckRebaseOk']
 
     cmd += ['-c', ':norm gg']
 
