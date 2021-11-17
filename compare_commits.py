@@ -162,7 +162,9 @@ def run_vim(f1: str, f2: str, comment_path: Optional[str],
             cmd += ['-c', ':GCheckRebaseToggleMeta']
 
     cmd += ['-c', 'command GCheckRebaseOk wa! | cq 200',
-            '-c', 'cnoreabbrev ok GCheckRebaseOk']
+            '-c', 'cnoreabbrev ok GCheckRebaseOk',
+            '-c', 'command GCheckRebaseStop wa! | cq 201',
+            '-c', 'cnoreabbrev stop GCheckRebaseStop',]
 
     cmd += ['-c', ':norm gg']
 
