@@ -10,8 +10,8 @@ import tabulate
 import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, CompRes, parse_range, \
-    RowsHideLevel
+from compare_ranges import CommitRange, CompRes, \
+    RowsHideLevel, NoBaseError
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 
@@ -75,12 +75,6 @@ class GitCheckRebase:
 
         self.meta = Meta(meta_path)
 
-        self.right_range_base, _ = \
-            parse_range(self.range_defs[-1].split(':')[-1])
-        if self.right_range_base is None:
-            sys.exit('Last range must contain ".." separator. You shouldn\'t '
-                     'want print the whole branch.')
-
     def __enter__(self):
         return self
 
@@ -99,9 +93,21 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
     def parse_range_defs(self):
         """Must be called again, when git history changed"""
-        self.ranges = [CommitRange(r, meta=self.meta,
-                                   default_base=self.right_range_base)
-                       for r in self.range_defs]
+        try:
+            last = CommitRange(self.range_defs[-1], meta=self.meta)
+        except NoBaseError:
+            sys.exit("Last range can't use default-base '<commit>' syntax")
+
+        try:
+            self.ranges = [CommitRange(r, meta=self.meta,
+                                       default_base=last.base)
+                           for r in self.range_defs[:-1]]
+        except NoBaseError:
+            # last.base is None if last has several sub-ranges
+            sys.exit("Can't use default-base '<commit>' syntax when last "
+                     "range is multi-range")
+
+        self.ranges.append(last)
 
     def do_interactive_compare(self, row_ind: int, i1: int,
                                i2: int, branch: str) -> str:

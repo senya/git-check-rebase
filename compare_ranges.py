@@ -27,12 +27,17 @@ class TableIssue:
         return Span(self.key, fmt, klass)
 
 
+class NoBaseError(Exception):
+    pass
+
+
 def parse_range(definition: str, default_base: Optional[str] = None) -> \
-        Tuple[Optional[str], str]:
+        Tuple[str, str]:
     """Parse one git range
     Supported definitions:
 
     <commit>             -> (default_base, commit)
+                            default_base must not be None in this case
 
     <commit1>..<commit2> -> (commit1, commit2)
 
@@ -51,6 +56,9 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
     else:
         top = definition
         base = default_base
+
+    if not base:
+        raise NoBaseError
 
     return base, top
 
@@ -88,8 +96,6 @@ class CommitRange:
         self.commits = []
         for rng in definition.split(','):
             base, top = parse_range(rng, default_base)
-            # We should never work with the whole branch, it is slow.
-            assert base is not None
             self.commits.extend(git_log_commits(f'{base}..{top}'))
 
         self.by_key = {}
