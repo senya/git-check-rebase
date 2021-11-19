@@ -29,6 +29,18 @@ class TableIssue:
 
 def parse_range(definition: str, default_base: Optional[str] = None) -> \
         Tuple[Optional[str], str]:
+    """Parse one git range
+    Supported definitions:
+
+    <commit>             -> (default_base, commit)
+
+    <commit1>..<commit2> -> (commit1, commit2)
+
+    <commit>..           -> (commit, 'HEAD')
+    """
+
+    assert definition
+    assert ',' not in definition
     assert ':' not in definition
 
     base: Optional[str]
