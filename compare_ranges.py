@@ -117,9 +117,9 @@ class MultiRange:
             self.commits.extend(git_log_commits(f'{base}..{top}'))
 
         self.by_key = {}
-        for c in self.commits:
+        for i, c in enumerate(self.commits):
             key = subject_to_key(c.subject, meta)
-            self.by_key[key] = c.commit_hash
+            self.by_key[key] = i, c
 
 
 class CompRes(Enum):
@@ -184,7 +184,10 @@ class Table:
         self.ranges = ranges
         self.rows = []
 
-        for c in ranges[-1].commits:
+        corresponding = [len(r.commits) == len(ranges[-1].commits)
+                         for r in ranges[:-1]]
+
+        for i, c in enumerate(ranges[-1].commits):
             an = c.author_name
             if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
                 an = "Vladimir S-O"
@@ -193,15 +196,31 @@ class Table:
             row = Row(commits=[], issues=[], date=c.author_date, author=an,
                       subject=c.subject, _meta=meta, _key=key)
 
-            for r in ranges[:-1]:
+            for r_ind, r in enumerate(ranges[:-1]):
                 if key in r.by_key:
-                    row.commits.append(GitHashCell(r.by_key[key]))
+                    j, c2 = r.by_key[key]
+                    row.commits.append(GitHashCell(c2.commit_hash))
+                    if j != i:
+                        corresponding[r_ind] = False
                 else:
                     row.commits.append(None)
 
             row.commits.append(GitHashCell(c.commit_hash))
 
             self.rows.append(row)
+
+        # If user cares to pass ranges of same length, and all found commits
+        # have same index in range as corresponding commit in last range,
+        # assume that non-found commits are just renamed but stay at same
+        # position.
+        for i in range(len(ranges) - 1):
+            if not corresponding[i]:
+                continue
+
+            for j, row in enumerate(self.rows):
+                if row.commits[i] is None:
+                    c = ranges[i].commits[j]
+                    row.commits[i] = GitHashCell(c.commit_hash)
 
     @staticmethod
     def _compare_commits(base: GitHashCell, other: GitHashCell,
