@@ -30,8 +30,8 @@ def print_legend(ranges, html):
     for col, desc in def_col:
         print(Span(f'███████ - {desc}', klass=col))
     for r in ranges:
-        if r.name != r.git_range:
-            print('{} = {}{}'.format(r.name, r.git_range, br))
+        if r.legend:
+            print(f'{r.legend}{br}')
 
 
 class GitCheckRebase:

@@ -49,8 +49,10 @@ class CommitRange:
     def __init__(self, definition, meta=None, default_base=None):
         if ':' in definition:
             self.name, definition = definition.split(':', 1)
+            self.legend = f'{self.name} = {definition}'
         else:
             self.name = definition
+            self.legend = None
 
         self.base, self.top = parse_range(definition, default_base)
 
