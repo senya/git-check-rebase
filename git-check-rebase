@@ -75,7 +75,8 @@ class GitCheckRebase:
 
         self.meta = Meta(meta_path)
 
-        _, self.right_range_base, _ = parse_range(self.range_defs[-1])
+        self.right_range_base, _ = \
+            parse_range(self.range_defs[-1].split(':')[-1])
         if self.right_range_base is None:
             sys.exit('Last range must contain ".." separator. You shouldn\'t '
                      'want print the whole branch.')

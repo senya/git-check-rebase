@@ -30,11 +30,8 @@ class TableIssue:
 
 
 def parse_range(definition: str, default_base: Optional[str] = None) -> \
-        Tuple[str, Optional[str], str]:
-    if ':' in definition:
-        name, definition = definition.split(':', 1)
-    else:
-        name = definition
+        Tuple[Optional[str], str]:
+    assert ':' not in definition
 
     base: Optional[str]
     if '..' in definition:
@@ -45,12 +42,17 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
         top = definition
         base = default_base
 
-    return name, base, top
+    return base, top
 
 
 class CommitRange:
     def __init__(self, definition, meta=None, default_base=None):
-        self.name, self.base, self.top = parse_range(definition, default_base)
+        if ':' in definition:
+            self.name, definition = definition.split(':', 1)
+        else:
+            self.name = definition
+
+        self.base, self.top = parse_range(definition, default_base)
 
         # We should never work with the whole branch, it is slow.
         assert self.base is not None
