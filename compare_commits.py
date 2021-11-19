@@ -357,7 +357,8 @@ def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
         ar = apply_patch_changes(c1, c1_branch, c1_orig, c1_filtered, f1)
         if ar.action == TriWay.RETRY:
             continue
-        elif ar.action == TriWay.STOP:
+
+        if ar.action == TriWay.STOP:
             res.stop = True
             break
 
@@ -366,7 +367,8 @@ def interactive_compare_commits(c1, c2, c1_branch, c2_branch,
         ar = apply_patch_changes(c2, c2_branch, c2_orig, c2_filtered, f2)
         if ar.action == TriWay.RETRY:
             continue
-        elif ar.action == TriWay.STOP:
+
+        if ar.action == TriWay.STOP:
             res.stop = True
             break
 

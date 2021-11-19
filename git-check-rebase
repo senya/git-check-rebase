@@ -2,9 +2,10 @@
 
 import os
 import sys
-import tabulate
+from tempfile import mkstemp
 from typing import Optional, Type
 from types import TracebackType
+import tabulate
 
 import compare_ranges
 from check_rebase_meta import Meta
@@ -13,7 +14,6 @@ from compare_ranges import CommitRange, CompRes, parse_range, \
     RowsHideLevel
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
-from tempfile import mkstemp
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -45,6 +45,8 @@ class GitCheckRebase:
         self.rows_hide_level = rows_hide_level
         self.interactive = interactive
         self.ign_commit_messages = ign_commit_messages
+        self.ranges = []  # see parse_range_defs
+        self.tab = None  # see main
 
         if columns is None:
             columns = 'short'
@@ -64,7 +66,7 @@ class GitCheckRebase:
         elif color is None:
             self.fmt = 'colored' if sys.stdout.isatty() else 'plain'
         else:
-            self.fmt = 'colored' if self.color else 'plain'
+            self.fmt = 'colored' if color else 'plain'
 
         self.created_meta = not meta_path
         if self.created_meta:
@@ -178,7 +180,8 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                     if res == 'STOP':
                         stop = True
                         break
-                    elif res:
+
+                    if res:
                         self.main(start_from=res)
                         return
                 if stop:
@@ -254,13 +257,13 @@ if __name__ == '__main__':
 
     args = p.parse_args()
 
-    rows_hide_level = RowsHideLevel[args.rows_hide_level.upper()]
+    rows_hide_lvl = RowsHideLevel[args.rows_hide_level.upper()]
     try:
         gcr = GitCheckRebase(range_defs=args.ranges, meta_path=args.meta,
                              html=args.html,
                              jira=args.jira, jira_issues=args.jira_issues,
                              legend=args.legend, columns=args.columns,
-                             rows_hide_level=rows_hide_level,
+                             rows_hide_level=rows_hide_lvl,
                              interactive=args.interactive,
                              color=args.color,
                              ign_commit_messages=args.ignore_commit_messages)

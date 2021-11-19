@@ -122,7 +122,7 @@ SpanTable = List[SpanTableRow]
 class Table:
     def __init__(self, ranges: List[CommitRange],
                  meta: Optional[Meta] = None) -> None:
-        """Prepare table with commits found by subjects using @meta information.
+        """Prepare table with commits found by subjects using @meta info.
         Link with @meta elements. (Modifying separate CommitMeta objects is OK,
         but if you update @meta significantly, regenerated the table)
         No comparison is done yet.
@@ -151,7 +151,8 @@ class Table:
 
             self.rows.append(row)
 
-    def _compare_commits(self, base: GitHashCell, other: GitHashCell,
+    @staticmethod
+    def _compare_commits(base: GitHashCell, other: GitHashCell,
                          row_meta: Optional[CommitMeta],
                          ign_cmsg: bool) -> None:
         if are_commits_equal(base.commit_hash, other.commit_hash, ign_cmsg):

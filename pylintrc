@@ -26,7 +26,11 @@ disable=invalid-name,
         missing-docstring,
         too-many-return-statements,
         too-many-statements,
-        too-many-nested-blocks
+        too-many-nested-blocks,
+        unspecified-encoding,
+        consider-using-f-string,
+        too-many-instance-attributes
+
 
 [FORMAT]
 
