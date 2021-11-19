@@ -1,5 +1,3 @@
-import sys
-
 from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Any, Union, Tuple
@@ -45,7 +43,22 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
     return base, top
 
 
+@dataclass
+class Commit:
+    commit_hash: str
+    author_date: str
+    author_name: str
+    subject: str
+
+
+def git_log_commits(git_range):
+    return [Commit(commit_hash=h, author_date=ad,
+                   author_name=an, subject=s) for h, ad, an, s in
+            git_log_table('%h %ad %an %s', git_range)]
+
+
 class CommitRange:
+    """ Class maintains multiple git ranges """
     def __init__(self, definition, meta=None, default_base=None):
         if ':' in definition:
             self.name, definition = definition.split(':', 1)
@@ -54,24 +67,23 @@ class CommitRange:
             self.name = definition
             self.legend = None
 
-        self.base, self.top = parse_range(definition, default_base)
+        if ',' in definition:
+            # base and top are not defined for several ranges
+            self.base = self.top = None
+        else:
+            self.base, self.top = parse_range(definition, default_base)
 
-        # We should never work with the whole branch, it is slow.
-        assert self.base is not None
-        self.git_range = f'{self.base}..{self.top}'
-
-        lines = git_log_table('%h %s', self.git_range)
+        self.commits = []
+        for rng in definition.split(','):
+            base, top = parse_range(rng, default_base)
+            # We should never work with the whole branch, it is slow.
+            assert base is not None
+            self.commits.extend(git_log_commits(f'{base}..{top}'))
 
         self.by_key = {}
-        for line in lines:
-            try:
-                h, s = line
-            except ValueError:
-                print(line)
-                sys.exit(0)
-            key = subject_to_key(s, meta)
-
-            self.by_key[key] = h
+        for c in self.commits:
+            key = subject_to_key(c.subject, meta)
+            self.by_key[key] = c.commit_hash
 
 
 class CompRes(Enum):
@@ -136,14 +148,14 @@ class Table:
         self.ranges = ranges
         self.rows = []
 
-        git_range = ranges[-1].git_range
-        for h, ad, an, s in git_log_table('%h %ad %an %s', git_range):
+        for c in ranges[-1].commits:
+            an = c.author_name
             if an == 'Vladimir Sementsov-Ogievskiy':  # too long :)
                 an = "Vladimir S-O"
 
-            key = subject_to_key(s, meta)
-            row = Row(commits=[], issues=[], date=ad, author=an, subject=s,
-                      _meta=meta, _key=key)
+            key = subject_to_key(c.subject, meta)
+            row = Row(commits=[], issues=[], date=c.author_date, author=an,
+                      subject=c.subject, _meta=meta, _key=key)
 
             for r in ranges[:-1]:
                 if key in r.by_key:
@@ -151,7 +163,7 @@ class Table:
                 else:
                     row.commits.append(None)
 
-            row.commits.append(GitHashCell(h))
+            row.commits.append(GitHashCell(c.commit_hash))
 
             self.rows.append(row)
 
