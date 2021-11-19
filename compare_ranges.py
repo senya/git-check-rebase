@@ -82,7 +82,7 @@ def git_log_commits(git_range):
             git_log_table('%h %ad %an %s', git_range)]
 
 
-class CommitRange:
+class MultiRange:
     """ Class maintains multiple git ranges """
     def __init__(self, definition, meta=None, default_base=None):
         if ':' in definition:
@@ -159,7 +159,7 @@ SpanTable = List[SpanTableRow]
 
 
 class Table:
-    def __init__(self, ranges: List[CommitRange],
+    def __init__(self, ranges: List[MultiRange],
                  meta: Optional[Meta] = None) -> None:
         """Prepare table with commits found by subjects using @meta info.
         Link with @meta elements. (Modifying separate CommitMeta objects is OK,

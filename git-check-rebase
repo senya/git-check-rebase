@@ -10,7 +10,7 @@ import tabulate
 import compare_ranges
 from check_rebase_meta import Meta
 from span import Span
-from compare_ranges import CommitRange, CompRes, \
+from compare_ranges import MultiRange, CompRes, \
     RowsHideLevel, NoBaseError
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
@@ -94,13 +94,13 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
     def parse_range_defs(self):
         """Must be called again, when git history changed"""
         try:
-            last = CommitRange(self.range_defs[-1], meta=self.meta)
+            last = MultiRange(self.range_defs[-1], meta=self.meta)
         except NoBaseError:
             sys.exit("Last range can't use default-base '..<commit>' syntax")
 
         try:
-            self.ranges = [CommitRange(r, meta=self.meta,
-                                       default_base=last.base)
+            self.ranges = [MultiRange(r, meta=self.meta,
+                                      default_base=last.base)
                            for r in self.range_defs[:-1]]
         except NoBaseError:
             # last.base is None if last has several sub-ranges
