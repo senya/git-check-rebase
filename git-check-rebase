@@ -96,7 +96,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
         try:
             last = CommitRange(self.range_defs[-1], meta=self.meta)
         except NoBaseError:
-            sys.exit("Last range can't use default-base '<commit>' syntax")
+            sys.exit("Last range can't use default-base '..<commit>' syntax")
 
         try:
             self.ranges = [CommitRange(r, meta=self.meta,
@@ -104,7 +104,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                            for r in self.range_defs[:-1]]
         except NoBaseError:
             # last.base is None if last has several sub-ranges
-            sys.exit("Can't use default-base '<commit>' syntax when last "
+            sys.exit("Can't use default-base '..<commit>' syntax when last "
                      "range is multi-range")
 
         self.ranges.append(last)

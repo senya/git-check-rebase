@@ -36,7 +36,9 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
     """Parse one git range
     Supported definitions:
 
-    <commit>             -> (default_base, commit)
+    <commit>             -> (commit~, commit)
+
+    ..<commit>           -> (default_base, commit)
                             default_base must not be None in this case
 
     <commit1>..<commit2> -> (commit1, commit2)
@@ -48,14 +50,17 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
     assert ',' not in definition
     assert ':' not in definition
 
-    base: Optional[str]
-    if '..' in definition:
-        base, top = definition.split('..', 1)
-        if top == '':
-            top = 'HEAD'
-    else:
-        top = definition
+    if '..' not in definition:
+        return definition + '~', definition
+
+    base, top = definition.split('..')
+
+    if not base:
+        if not default_base:
+            raise NoBaseError
         base = default_base
+    if not top:
+        top = 'HEAD'
 
     if not base:
         raise NoBaseError
