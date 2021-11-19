@@ -1,3 +1,5 @@
+import re
+
 from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Any, Union, Tuple
@@ -31,6 +33,9 @@ class NoBaseError(Exception):
     pass
 
 
+MINUS_REGEX = re.compile(r'([^^~]+)(\^\d*|~\d*)+-')
+
+
 def parse_range(definition: str, default_base: Optional[str] = None) -> \
         Tuple[str, str]:
     """Parse one git range
@@ -44,11 +49,19 @@ def parse_range(definition: str, default_base: Optional[str] = None) -> \
     <commit1>..<commit2> -> (commit1, commit2)
 
     <commit>..           -> (commit, 'HEAD')
+
+    <hash>~5-            -> (hash~5, hash)
+      and a lot of similar things, you may use tag/branch name instead of hash
+      and any combination of ~ and ^ operators
     """
 
     assert definition
     assert ',' not in definition
     assert ':' not in definition
+
+    m = MINUS_REGEX.fullmatch(definition)
+    if m is not None:
+        return definition[:-1], m.group(1)
 
     if '..' not in definition:
         return definition + '~', definition
