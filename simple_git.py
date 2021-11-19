@@ -30,19 +30,10 @@ def git_log(fmt, param):
     return lines
 
 
-def git_log_table_one_range(fmt, param, splitter):
+def git_log_table(fmt, param, splitter='$%^@'):
     lines = git_log(fmt.replace(' ', splitter), param)
 
     return (line.split(splitter) for line in lines if line)
-
-
-def git_log_table(fmt, param, splitter='$%^@'):
-    lines = []
-
-    for p in param.split(','):
-        lines += git_log_table_one_range(fmt, p, splitter)
-
-    return lines
 
 
 def git_get_git_dir():
