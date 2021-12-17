@@ -309,7 +309,7 @@ class Table:
                 if row.meta and row.meta.tag:
                     klass = 'drop' if row.meta.tag.startswith('drop') else None
                     meta.append(Span(row.meta.tag, fmt, klass))
-                meta += [issue.to_span() for issue in row.issues]
+                meta += [issue.to_span(fmt=fmt) for issue in row.issues]
 
                 line.append(' '.join(map(str, meta)))
 
@@ -318,7 +318,7 @@ class Table:
                     if commit is None:
                         line.append(None)
                     else:
-                        line.append(commit.to_span())
+                        line.append(commit.to_span(fmt=fmt))
 
             if date_column:
                 line.append(row.date)
