@@ -5,6 +5,6 @@ setup(name='git-check-rebase',
       description='Some useful scripts to operate track history and patch '
                   'changes during rebases.',
       author='Vladimir Sementsov-Ogievskiy',
-      author_email='vsementsov@virtuozzo.com',
+      author_email='v.sementsov-og@mail.ru',
       license='MIT',
       scripts=['git-check-rebase', 'git-change-difftool', 'git-change-diff'])
