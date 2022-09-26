@@ -32,6 +32,7 @@ class Span:
             mapping = {
                 'bug-critical': 'red',
                 'bug-fixed': 'green',
+                'matching': 'green',
                 'bug': 'cyan',
                 'unknown': 'red',
                 'equal': 'green',
