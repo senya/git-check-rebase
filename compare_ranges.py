@@ -4,7 +4,6 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Any, Union, Tuple
 
-from parse_jira import parse_jira
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
 from check_rebase_meta import subject_to_key, text_add_indent, Meta, CommitMeta
@@ -255,6 +254,8 @@ class Table:
                 self._compare_commits(base, c, row.meta, ignore_cmsg)
 
     def add_jira_info(self, jira, jira_issues):
+        from parse_jira import parse_jira
+
         auth, server = jira.rsplit('@', 1)
         user, password = auth.split(':', 1)
         jiramap = parse_jira('https://' + server, user, password, jira_issues,
