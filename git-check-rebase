@@ -6,32 +6,32 @@ from tempfile import mkstemp
 from typing import Optional, Type
 from types import TracebackType
 import tabulate
+import text_table_view
+import html_table_view
 
 import compare_ranges
 from check_rebase_meta import Meta
-from span import Span
 from compare_ranges import MultiRange, CompRes, \
     RowsHideLevel, NoBaseError
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 
+from viewable import Span
+
 tabulate.PRESERVE_WHITESPACE = True
 
 
-def print_legend(ranges, html):
-    def_col = (
-        ('bug-critical', 'Critical bugs'),
-        ('matching', 'Matching, checked automatically'),
-        ('checked', 'Matching, checked by hand'),
-        ('drop', 'Dropped patches'),
-        ('bug', 'Jira issues, non-critical')
+def print_legend(viewer, ranges, html):
+    def_style = (
+        ('Critical bugs', 'bug-critical'),
+        ('Matching, checked automatically', 'matching'),
+        ('Matching, checked by hand', 'checked'),
+        ('Dropped patches', 'drop'),
+        ('Jira issues, non-critical', 'bug')
     )
-    br = '<br>' if html else ''
-    for col, desc in def_col:
-        print(Span(f'███████ - {desc}', klass=col))
-    for r in ranges:
-        if r.legend:
-            print(f'{r.legend}{br}')
+    tab = [[Span(f'███████ - {desc}', style)] for desc, style in def_style]
+    tab += [[r.legend] for r in ranges if r.legend]
+    print(viewer.view_table(tab))
 
 
 class GitCheckRebase:
@@ -67,6 +67,11 @@ class GitCheckRebase:
             self.fmt = 'colored' if sys.stdout.isatty() else 'plain'
         else:
             self.fmt = 'colored' if color else 'plain'
+
+        if self.fmt == 'html':
+            self.viewer = html_table_view.HtmlViewer()
+        else:
+            self.viewer = text_table_view.TextViewer(self.fmt == 'colored')
 
         self.created_meta = not meta_path
         if self.created_meta:
@@ -194,13 +199,13 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if stop:
                     break
 
-        out = self.tab.to_spans(fmt=self.fmt, headers=self.cols_full,
-                                date_column=self.cols_full,
-                                author_column=self.cols_full,
-                                meta_column=self.cols_full,
-                                index_column=('index' in self.columns),
-                                commits_columns=self.cols_commits,
-                                rows_hide_level=self.rows_hide_level)
+        out = self.tab.to_list(headers=self.cols_full,
+                               date_column=self.cols_full,
+                               author_column=self.cols_full,
+                               meta_column=self.cols_full,
+                               index_column=('index' in self.columns),
+                               commits_columns=self.cols_commits,
+                               rows_hide_level=self.rows_hide_level)
 
         if self.html:
             print("""<!DOCTYPE html>
@@ -213,15 +218,9 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                   """)
 
         if self.legend:
-            print_legend(self.ranges, self.html)
+            print_legend(self.viewer, self.ranges, self.html)
 
-        if self.html:
-            tablefmt = 'html'
-        elif self.legend:
-            tablefmt = 'simple'
-        else:
-            tablefmt = 'plain'
-        print(tabulate.tabulate(out, tablefmt=tablefmt))
+        print(self.viewer.view_table(out))
 
 
 if __name__ == '__main__':

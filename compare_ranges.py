@@ -7,25 +7,16 @@ from typing import List, Optional, Any, Union, Tuple, Dict
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
 from check_rebase_meta import subject_to_key, text_add_indent, Meta, CommitMeta
-from span import Span
+
+from viewable import Span, Issue, GitHashCell, CompRes, VTable
 
 
-class TableIssue:
-    def __init__(self, jira_issue: Any) -> None:
-        self.key = jira_issue.key
-        self.critical = jira_issue.fields.priority.name in ('Critical',
-                                                            'Blocker')
-        self.fixed = jira_issue.fields.resolution and \
-            jira_issue.fields.resolution.name == 'Fixed'
-
-    def to_span(self, fmt: str = 'colored') -> Span:
-        if self.fixed:
-            klass = 'bug-fixed'
-        elif self.critical:
-            klass = 'bug-critical'
-        else:
-            klass = 'bug'
-        return Span(self.key, fmt, klass)
+def parse_jira_issue(jira_issue: Any) -> Issue:
+    return Issue(key = jira_issue.key,
+                 critical = jira_issue.fields.priority.name in ('Critical',
+                                                                'Blocker'),
+                 fixed = jira_issue.fields.resolution and
+                    jira_issue.fields.resolution.name == 'Fixed')
 
 
 class NoBaseError(Exception):
@@ -121,23 +112,6 @@ class MultiRange:
             self.by_key[key] = i, c
 
 
-class CompRes(Enum):
-    NONE = 1
-    BASE = 2  # Some other cells are equal to this one
-    EQUAL = 3  # Equal to base, auto-checked
-    CHECKED = 4  # Equal to base, checked by hand
-
-
-@dataclass
-class GitHashCell:
-    """Representation of one cell with commit hash"""
-    commit_hash: str
-    comp: CompRes = CompRes.NONE
-
-    def to_span(self, fmt: str = 'colored') -> Span:
-        return Span(self.commit_hash, fmt, self.comp.name.lower())
-
-
 class Column(Enum):
     INDEX = 1
     META = 2
@@ -150,7 +124,7 @@ class Column(Enum):
 class Row:
     """Representation of on row if git-range-diff-table"""
     commits: List[Optional[GitHashCell]]
-    issues: List[TableIssue]
+    issues: List[Issue]
     date: str
     author: str
     subject: str
@@ -166,30 +140,29 @@ class Row:
             return None
         return self._meta.by_key.get(self._key)
 
-    def get_meta_cell(self, fmt: str):
+    def get_meta_cell(self):
         meta = []
         if self.meta and self.meta.tag:
             klass = 'drop' if self.meta.tag.startswith('drop') else None
-            meta.append(Span2(self.meta.tag, klass))
-        meta += [issue.to_span(fmt=fmt) for issue in self.issues]
+            meta.append(Span(self.meta.tag, klass))
+        meta += self.issues
 
         if not meta and not any(self.commits[:-1]):
             # Nothing to say and no matching commits
-            return Span('???', fmt, 'unknown')
+            return Span('???', 'unknown')
 
-        return ' '.join(map(str, meta))
+        return meta
 
 
     def to_list(self, columns: List[Column],
-                default: Dict[Column, Any], fmt: str) -> List[Any]:
+                default: Dict[Column, Any]) -> List[Any]:
 
         line = []
         for c in columns:
             if c == Column.META:
-                line.append(self.get_meta_cell(fmt))
+                line.append(self.get_meta_cell())
             elif c == Column.COMMITS:
-                line.extend([None if c is None else c.to_span(fmt=fmt)
-                             for c in self.commits])
+                line.extend(self.commits)
             elif c == Column.DATE:
                 line.append(self.date)
             elif c == Column.AUTHOR:
@@ -205,11 +178,6 @@ class RowsHideLevel(Enum):
     SHOW_ALL = 1
     HIDE_EQUAL = 2
     HIDE_CHECKED = 3
-
-
-SpanTableCell = Union[None, str, Span]
-SpanTableRow = List[SpanTableCell]
-SpanTable = List[SpanTableRow]
 
 
 class Table:
@@ -306,20 +274,20 @@ class Table:
         for row in self.rows:
             issues = jiramap.get(row.subject)
             if issues:
-                row.issues = [TableIssue(issue) for issue in issues]
+                row.issues = [parse_jira_issue(issue) for issue in issues]
 
-    def to_spans(self, fmt: str = 'colored',
-                 headers: bool = True,
-                 date_column: bool = True,
-                 author_column: bool = True,
-                 meta_column: bool = True,
-                 index_column: bool = False,
-                 commits_columns: bool = True,
-                 rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
-            -> SpanTable:
+    def to_list(self, fmt: str = 'colored',
+                headers: bool = True,
+                date_column: bool = True,
+                author_column: bool = True,
+                meta_column: bool = True,
+                index_column: bool = False,
+                commits_columns: bool = True,
+                rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
+            -> VTable:
 
-        out: SpanTable = []
-        line: SpanTableRow
+        out: VTable = []
+        line: VTableRow
 
         if headers:
             line = ['<tag>'] if meta_column else []
@@ -356,7 +324,7 @@ class Table:
 
             line = row.to_list(columns, {
                 Column.INDEX: f'{row_ind + 1:0{index_len}}'
-            }, fmt)
+            })
 
             out.append(line)
             if row.meta and row.meta.comment:
