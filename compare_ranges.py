@@ -2,7 +2,7 @@ import re
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Any, Union, Tuple
+from typing import List, Optional, Any, Union, Tuple, Dict
 
 from simple_git import git_log_table
 from compare_commits import are_commits_equal
@@ -138,6 +138,14 @@ class GitHashCell:
         return Span(self.commit_hash, fmt, self.comp.name.lower())
 
 
+class Column(Enum):
+    INDEX = 1
+    META = 2
+    COMMITS = 3
+    DATE = 4
+    AUTHOR = 5
+    SUBJECT = 6
+
 @dataclass
 class Row:
     """Representation of on row if git-range-diff-table"""
@@ -157,6 +165,40 @@ class Row:
         if self._meta is None:
             return None
         return self._meta.by_key.get(self._key)
+
+    def get_meta_cell(self, fmt: str):
+        meta = []
+        if self.meta and self.meta.tag:
+            klass = 'drop' if self.meta.tag.startswith('drop') else None
+            meta.append(Span2(self.meta.tag, klass))
+        meta += [issue.to_span(fmt=fmt) for issue in self.issues]
+
+        if not meta and not any(self.commits[:-1]):
+            # Nothing to say and no matching commits
+            return Span('???', fmt, 'unknown')
+
+        return ' '.join(map(str, meta))
+
+
+    def to_list(self, columns: List[Column],
+                default: Dict[Column, Any], fmt: str) -> List[Any]:
+
+        line = []
+        for c in columns:
+            if c == Column.META:
+                line.append(self.get_meta_cell(fmt))
+            elif c == Column.COMMITS:
+                line.extend([None if c is None else c.to_span(fmt=fmt)
+                             for c in self.commits])
+            elif c == Column.DATE:
+                line.append(self.date)
+            elif c == Column.AUTHOR:
+                line.append(self.author)
+            elif c == Column.SUBJECT:
+                line.append(self.subject)
+            else:
+                line.append(default[c])
+        return line
 
 
 class RowsHideLevel(Enum):
@@ -291,6 +333,16 @@ class Table:
 
         index_len = len(str(len(self.rows)))
 
+        mapping = (
+            (Column.INDEX, index_column),
+            (Column.META, meta_column),
+            (Column.COMMITS, commits_columns),
+            (Column.DATE, date_column),
+            (Column.AUTHOR, author_column),
+            (Column.SUBJECT, True)
+        )
+        columns = [m[0] for m in mapping if m[1]]
+
         for row_ind, row in enumerate(self.rows):
             if rows_hide_level.value >= RowsHideLevel.HIDE_CHECKED.value and \
                     all(c is not None and c.comp != CompRes.NONE for
@@ -302,34 +354,9 @@ class Table:
                         c in row.commits):
                 continue
 
-            line = []
-            if index_column:
-                line.append(f'{row_ind + 1:0{index_len}}')
-            if meta_column:
-                meta = []
-                if row.meta and row.meta.tag:
-                    klass = 'drop' if row.meta.tag.startswith('drop') else None
-                    meta.append(Span(row.meta.tag, fmt, klass))
-                meta += [issue.to_span(fmt=fmt) for issue in row.issues]
-
-                line.append(' '.join(map(str, meta)))
-
-            if commits_columns:
-                for commit in row.commits:
-                    if commit is None:
-                        line.append(None)
-                    else:
-                        line.append(commit.to_span(fmt=fmt))
-
-            if date_column:
-                line.append(row.date)
-            if author_column:
-                line.append(row.author)
-            line.append(row.subject)
-
-            if meta_column and line[0] is None and \
-                    all(c is None for c in row.commits[:-1]):
-                line[0] = Span('???', fmt, 'unknown')
+            line = row.to_list(columns, {
+                Column.INDEX: f'{row_ind + 1:0{index_len}}'
+            }, fmt)
 
             out.append(line)
             if row.meta and row.meta.comment:
