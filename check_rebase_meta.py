@@ -29,12 +29,39 @@ def text_add_indent(text: str, indent: int) -> str:
     return ws + text.replace('\n', spl) + ending
 
 
+class Feature:
+    def __init__(self, name, group=None):
+        assert group is None
+        self.feature = name
+        self.drop = ''
+
+    def add_property(self, prop):
+        if prop == 'drop':
+            assert not self.drop
+            self.drop = 'drop'
+        else:
+            key, val = [x.strip() for x in prop.split(':', 2)]
+            assert val
+            assert key == 'drop'
+            self.drop = 'drop-' + val
+
+
+class DropGroup:
+    def __init__(self, name, group=None):
+        self.feature = group.feature if group else None
+        self.drop = 'drop-' + name if name else 'drop'
+
+    def add_property(self, prop):
+        raise ValueError
+
+
 class CommitMeta:
-    def __init__(self, subject, tag=None):
+    def __init__(self, subject, group=None):
         self.subject = subject
-        self.tag = tag
         self.comment = ''
         self.checked = []
+        self.feature = group.feature if group else None
+        self.drop = group.drop if group else None
 
     def add_comment_line(self, comment):
         if self.comment:
@@ -43,6 +70,12 @@ class CommitMeta:
 
     def add_checked_pair(self, h1, h2):
         self.checked.append((h1, h2))
+
+    def add_property(self, prop):
+        if prop.startswith('ok:'):
+            self.add_checked_pair(*(prop.split()[1:]))
+        else:
+            self.add_comment_line(prop)
 
 
 def meta_file_set_comment(fname: str, subject: str, comment: str,
@@ -95,50 +128,63 @@ class Meta:
         self.by_key = {}
         self.aliases = {}
 
-        tag = None
-        commit = None
+        groups_stack = []
+        current_obj = None
 
         with open(fname) as f:
             for line in f:
-                if not line.strip():
-                    continue
-
                 line = line.rstrip()
 
-                if line[0] == '#':
+                if not line or line[0] == '#':
                     continue
 
-                if commit is not None:
-                    if line[0:6] == '  ok: ':
-                        commit.add_checked_pair(*(line.split()[1:]))
-                        continue
-                    if line[0:2] == '  ':
-                        commit.add_comment_line(line[2:])
-                        continue
+                if line[0:2] == '  ':
+                    current_obj.add_property(line[2:])
 
-                if line[0] == '=':
-                    assert commit is not None
+                elif line[0] == '=':
+                    assert isinstance(current_obj, CommitMeta)
                     self.aliases[subject_to_key(line[1:])] = \
-                        subject_to_key(commit.subject)
-                    continue
+                        subject_to_key(current_obj.subject)
 
-                if line[-1] == ':':
-                    tag = line[:-1]
-                    continue
+                elif line[-1] == ':':
+                    print('"tag:" syntax is deprecated. '
+                          'Use "%feature: <tag> <commits> %end" for '
+                          'grouping by features, "%drop: <tag> <commits> %end"'
+                          ' for drop grouping.')
+                    # Addition properties are not allowed for deprecated tag
+                    current_obj = None
+                    # Mimic old behavior: tag clears previous tag
+                    if line.startswith('drop'):
+                        reason = line[4:-1]
+                        if reason and reason[0] == '-':
+                            reason = reason[1:]
+                        groups_stack = [DropGroup(reason)]
+                    else:
+                        groups_stack = [Feature(line[:-1])]
 
-                if subject_to_key(line) in self.by_key:
-                    raise ValueError('Double definition for: ' + line)
-                commit = CommitMeta(line, tag)
-                self.by_key[subject_to_key(line)] = commit
+                elif line[0] == '%':
+                    if line == '%end':
+                        current_obj = None
+                        del groups_stack[-1]
+                    else:
+                        key, val = [x.strip() for x in line.split(':', 2)]
+                        if key == '%feature':
+                            current_obj = Feature(val)
+                        else:
+                            assert key == '%drop'
+                            current_obj = DropGroup(val)
+                        groups_stack.append(current_obj)
+
+                else:
+                    # Normal commit
+                    if subject_to_key(line) in self.by_key:
+                        raise ValueError('Double definition for: ' + line)
+                    group = groups_stack[-1] if groups_stack else None
+                    current_obj = CommitMeta(line, group=group)
+                    self.by_key[subject_to_key(line)] = current_obj
 
     def alias_to_key(self, alias):
         return self.aliases.get(alias, alias)
-
-    def get_tag(self, key):
-        if key in self.by_key:
-            return self.by_key[key].tag
-        else:
-            return None
 
     def subject_to_key(self, subject):
         return subject_to_key(subject, self)

@@ -153,9 +153,11 @@ class Row:
 
     def get_meta_cell(self):
         meta = []
-        if self.meta and self.meta.tag:
-            klass = 'drop' if self.meta.tag.startswith('drop') else None
-            meta.append(Span(self.meta.tag, klass))
+        if self.meta:
+            if self.meta.feature:
+                meta.append(self.meta.feature)
+            if self.meta.drop:
+                meta.append(Span(self.meta.drop, 'drop'))
         meta += self.issues
 
         if not meta and not any(self.commits[:-1]):
@@ -296,7 +298,7 @@ class Table:
         line: VTableRow
 
         if headers:
-            line = ['<tag>'] if meta_column else []
+            line = ['META'] if meta_column else []
             line += [r.name for r in self.ranges]
             if date_column:
                 line.append('DATE')
