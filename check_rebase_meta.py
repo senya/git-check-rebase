@@ -202,6 +202,10 @@ class Meta:
         else:
             return ''
 
+    def find_commit_meta(self, subject: str) -> Optional[CommitMeta]:
+        key = self.subject_to_key(subject)
+        return self.by_key.get(key)
+
     def update_meta(self, subject: str, comment: str,
                     ok_pair: Optional[Tuple[str, str]] = None) -> None:
         """ Set commit comment and add new ok_pair (old ok pairs remains) """
