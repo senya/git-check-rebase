@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import re
+import compare_ranges
+from simple_git import git
+from compare_ranges import MultiRange
+from check_rebase_meta import Meta
+import text_table_view
+import html_table_view
+
+
+def main(upstream, downstream, meta_path):
+    meta = Meta(meta_path) if meta_path else None
+    tab = compare_ranges.Table((MultiRange(upstream), MultiRange(downstream)),
+                               meta)
+    out = tab.to_list(fmt='plain', headers=True,
+                       date_column=True, author_column=True,
+                       meta_column=False, index_column=False,
+                       commits_columns=True)
+
+    out[0].insert(0, 'feature')
+    out[0][2:2] = 'c-p', 'issues'
+
+    for row in out[1:]:
+        if not row[1]:
+            msg = None
+            cherry = None
+            keys = []
+        else:
+            msg = git(f'log -1 {row[1].commit_hash}')
+            cherry = 'V' if 'cherry picked' in msg else ''
+            keys = re.findall(r'\b[A-Z]+-\d+\b', msg)
+
+        c = meta.find_commit_meta(row[-1])
+        row.insert(0, c.feature if c else '')
+        if not row[1] and c and c.upstreaming:
+            row[1] = c.upstreaming
+        row[2:2] = cherry, '\n'.join(keys)
+
+    print(text_table_view.TextViewer().view_table(out))
+
+if __name__ == '__main__':
+    import argparse
+
+    default_meta = os.path.join(git('rev-parse --show-toplevel').strip(),
+                                '.git-check-downstream')
+
+    p = argparse.ArgumentParser(description="Analyze downstream tail")
+    p.add_argument('upstream', help='upstream range to search in'
+                   'in form [<name>:]<git range or ref>')
+    p.add_argument('downstream', help='downstream range to search in'
+                   'in form [<name>:]<git range or ref>')
+    p.add_argument('--meta', help='optional, file with additional metadata, '
+                   'default is .git-check-downstream in the root of work '
+                   'directory if exists', default=default_meta)
+
+    args = p.parse_args()
+    main(upstream=args.upstream, downstream=args.downstream,
+         meta_path=args.meta)
