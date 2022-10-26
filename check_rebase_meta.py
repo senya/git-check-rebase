@@ -34,6 +34,7 @@ class Feature:
         assert group is None
         self.feature = name
         self.drop = ''
+        self.upstreaming = None
 
     def add_property(self, prop):
         if prop == 'drop':
@@ -42,14 +43,18 @@ class Feature:
         else:
             key, val = [x.strip() for x in prop.split(':', 2)]
             assert val
-            assert key == 'drop'
-            self.drop = 'drop-' + val
+            if key == 'drop':
+                self.drop = 'drop-' + val
+            else:
+                assert key == 'upstreaming'
+                self.upstreaming = val
 
 
 class DropGroup:
     def __init__(self, name, group=None):
         self.feature = group.feature if group else None
         self.drop = 'drop-' + name if name else 'drop'
+        self.upstreaming = None
 
     def add_property(self, prop):
         raise ValueError
@@ -62,6 +67,7 @@ class CommitMeta:
         self.checked = []
         self.feature = group.feature if group else None
         self.drop = group.drop if group else None
+        self.upstreaming = group.upstreaming if group else None
 
     def add_comment_line(self, comment):
         if self.comment:
