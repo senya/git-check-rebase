@@ -114,7 +114,7 @@ class MultiRange:
 
 class Column(Enum):
     INDEX = 1
-    META = 2
+    FEATURE = 2
     COMMITS = 3
     DATE = 4
     AUTHOR = 5
@@ -160,18 +160,6 @@ class Row:
             return None
         return self._meta.by_key.get(self._key)
 
-    def get_meta_cell(self):
-        meta = []
-        if self.meta:
-            if self.meta.feature:
-                meta.append(self.meta.feature)
-
-        if not meta and not any(self.commits[:-1]):
-            # Nothing to say and no matching commits
-            return Span('???', 'unknown')
-
-        return meta
-
     def get_commits(self):
         if not self.meta:
             return self.commits
@@ -199,8 +187,8 @@ class Row:
 
         line = []
         for c in columns:
-            if c == Column.META:
-                line.append(self.get_meta_cell())
+            if c == Column.FEATURE:
+                line.append(self.meta.feature if self.meta else None)
             elif c == Column.COMMITS:
                 line.extend(self.get_commits())
             elif c == Column.DATE:
@@ -315,7 +303,7 @@ class Table:
                 headers: bool = True,
                 date_column: bool = True,
                 author_column: bool = True,
-                meta_column: bool = True,
+                feature_column: bool = True,
                 index_column: bool = False,
                 commits_columns: bool = True,
                 rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
@@ -325,7 +313,7 @@ class Table:
         line: VTableRow
 
         if headers:
-            line = ['META'] if meta_column else []
+            line = ['FEATURE'] if feature_column else []
             line += [r.name for r in self.ranges]
             if date_column:
                 line.append('DATE')
@@ -338,7 +326,7 @@ class Table:
 
         mapping = (
             (Column.INDEX, index_column),
-            (Column.META, meta_column),
+            (Column.FEATURE, feature_column),
             (Column.COMMITS, commits_columns),
             (Column.DATE, date_column),
             (Column.AUTHOR, author_column),
