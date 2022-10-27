@@ -165,7 +165,6 @@ class Row:
         if self.meta:
             if self.meta.feature:
                 meta.append(self.meta.feature)
-        meta += self.issues
 
         if not meta and not any(self.commits[:-1]):
             # Nothing to say and no matching commits
@@ -189,6 +188,9 @@ class Row:
                 out[self.new_ind] = sp
             elif self.up_ind != -1 and out[self.up_ind] is None:
                 out[self.up_ind] = sp
+
+        if self.new_ind != -1 and out[self.new_ind] is None:
+            out[self.new_ind] = self.issues
 
         return out
 
