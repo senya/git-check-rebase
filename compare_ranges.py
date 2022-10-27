@@ -133,6 +133,15 @@ class Row:
     def __init__(self, ranges, ind, meta):
         c = ranges[-1].commits[ind]
 
+        self.up_ind = -1
+        self.new_ind = -1
+        for i, r in enumerate(ranges):
+            if r.name == 'up':
+                self.up_ind = i
+            elif r.name == 'new':
+                self.new_ind = i
+
+        self.ranges = ranges
         self.commits = \
             [None] * (len(ranges) - 1) + [GitHashCell(c.commit_hash)]
         self.issues = []
@@ -156,8 +165,6 @@ class Row:
         if self.meta:
             if self.meta.feature:
                 meta.append(self.meta.feature)
-            if self.meta.drop:
-                meta.append(Span(self.meta.drop, 'drop'))
         meta += self.issues
 
         if not meta and not any(self.commits[:-1]):
@@ -166,6 +173,24 @@ class Row:
 
         return meta
 
+    def get_commits(self):
+        if not self.meta:
+            return self.commits
+
+        out = self.commits[:]
+
+        if self.up_ind != -1 and out[self.up_ind] is None \
+                and self.meta.upstreaming:
+            out[self.up_ind] = self.meta.upstreaming
+
+        if self.meta.drop:
+            sp = Span(self.meta.drop, 'drop')
+            if self.new_ind != -1 and out[self.new_ind] is None:
+                out[self.new_ind] = sp
+            elif self.up_ind != -1 and out[self.up_ind] is None:
+                out[self.up_ind] = sp
+
+        return out
 
     def to_list(self, columns: List[Column],
                 default: Dict[Column, Any]) -> List[Any]:
@@ -175,7 +200,7 @@ class Row:
             if c == Column.META:
                 line.append(self.get_meta_cell())
             elif c == Column.COMMITS:
-                line.extend(self.commits)
+                line.extend(self.get_commits())
             elif c == Column.DATE:
                 line.append(self.date)
             elif c == Column.AUTHOR:
