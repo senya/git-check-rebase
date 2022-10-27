@@ -17,7 +17,7 @@ def main(upstream, downstream, meta_path):
                                meta)
     out = tab.to_list(fmt='plain', headers=True,
                        date_column=True, author_column=True,
-                       meta_column=False, index_column=False,
+                       feature_column=False, index_column=False,
                        commits_columns=True)
 
     out[0].insert(0, 'feature')

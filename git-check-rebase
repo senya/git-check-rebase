@@ -202,7 +202,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
         out = self.tab.to_list(headers=self.cols_full,
                                date_column=self.cols_full,
                                author_column=self.cols_full,
-                               meta_column=self.cols_full,
+                               feature_column=self.cols_full,
                                index_column=('index' in self.columns),
                                commits_columns=self.cols_commits,
                                rows_hide_level=self.rows_hide_level)
