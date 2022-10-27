@@ -120,7 +120,6 @@ class Column(Enum):
     AUTHOR = 5
     SUBJECT = 6
 
-@dataclass
 class Row:
     """Representation of on row if git-range-diff-table"""
     commits: List[Optional[GitHashCell]]
@@ -130,6 +129,18 @@ class Row:
     subject: str
     _meta: Optional[Meta]
     _key: str
+
+    def __init__(self, ranges, ind, meta):
+        c = ranges[-1].commits[ind]
+
+        self.commits = \
+            [None] * (len(ranges) - 1) + [GitHashCell(c.commit_hash)]
+        self.issues = []
+        self.date = c.author_date
+        self.author = c.author_name
+        self.subject = c.subject
+        self._meta = meta
+        self._key = subject_to_key(c.subject, meta)
 
     def get_comment(self) -> str:
         return '' if self.meta is None else self.meta.comment
@@ -202,19 +213,14 @@ class Table:
                 an = "Vladimir S-O"
 
             key = subject_to_key(c.subject, meta)
-            row = Row(commits=[], issues=[], date=c.author_date, author=an,
-                      subject=c.subject, _meta=meta, _key=key)
+            row = Row(ranges, i, meta)
 
             for r_ind, r in enumerate(ranges[:-1]):
                 if key in r.by_key:
                     j, c2 = r.by_key[key]
-                    row.commits.append(GitHashCell(c2.commit_hash))
+                    row.commits[r_ind] = GitHashCell(c2.commit_hash)
                     if j != i:
                         corresponding[r_ind] = False
-                else:
-                    row.commits.append(None)
-
-            row.commits.append(GitHashCell(c.commit_hash))
 
             self.rows.append(row)
 
