@@ -157,6 +157,18 @@ class Row:
         self.cherry = 'cherry picked' in msg
         self.msg_issues = re.findall(r'\b[A-Z]+-\d+\b', msg)
 
+        m = re.search(r'^    Feature: (.*)$', msg, re.MULTILINE)
+        if m:
+            self.feature = m.group(1)
+        else:
+            self.feature = self.meta.feature if self.meta else None
+
+        m = re.search(r'^    Upstreaming: (.*)$', msg, re.MULTILINE)
+        if m:
+            self.upstreaming = m.group(1)
+        else:
+            self.upstreaming = self.meta.upstreaming if self.meta else None
+
     def get_comment(self) -> str:
         return '' if self.meta is None else self.meta.comment
 
@@ -167,16 +179,13 @@ class Row:
         return self._meta.by_key.get(self._key)
 
     def get_commits(self):
-        if not self.meta:
-            return self.commits
-
         out = self.commits[:]
 
         if self.up_ind != -1 and out[self.up_ind] is None \
-                and self.meta.upstreaming:
-            out[self.up_ind] = self.meta.upstreaming
+                and self.upstreaming:
+            out[self.up_ind] = self.upstreaming
 
-        if self.meta.drop:
+        if self.meta and self.meta.drop:
             sp = Span(self.meta.drop, 'drop')
             if self.new_ind != -1 and out[self.new_ind] is None:
                 out[self.new_ind] = sp
@@ -194,7 +203,7 @@ class Row:
         line = []
         for c in columns:
             if c == Column.FEATURE:
-                line.append(self.meta.feature if self.meta else None)
+                line.append(self.feature)
             elif c == Column.COMMITS:
                 line.extend(self.get_commits())
             elif c == Column.DATE:
