@@ -4,7 +4,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Any, Union, Tuple, Dict
 
-from simple_git import git_log_table
+from simple_git import git_log_table, git
 from compare_commits import are_commits_equal
 from check_rebase_meta import subject_to_key, text_add_indent, Meta, CommitMeta
 
@@ -116,9 +116,11 @@ class Column(Enum):
     INDEX = 1
     FEATURE = 2
     COMMITS = 3
-    DATE = 4
-    AUTHOR = 5
-    SUBJECT = 6
+    CHERRY = 4
+    DATE = 5
+    AUTHOR = 6
+    MSG_ISSUES = 7
+    SUBJECT = 8
 
 class Row:
     """Representation of on row if git-range-diff-table"""
@@ -150,6 +152,10 @@ class Row:
         self.subject = c.subject
         self._meta = meta
         self._key = subject_to_key(c.subject, meta)
+
+        msg = git(f'log -1 {c.commit_hash}')
+        self.cherry = 'cherry picked' in msg
+        self.msg_issues = re.findall(r'\b[A-Z]+-\d+\b', msg)
 
     def get_comment(self) -> str:
         return '' if self.meta is None else self.meta.comment
@@ -197,6 +203,10 @@ class Row:
                 line.append(self.author)
             elif c == Column.SUBJECT:
                 line.append(self.subject)
+            elif c == Column.MSG_ISSUES:
+                line.append(self.msg_issues)
+            elif c == Column.CHERRY:
+                line.append('V' if self.cherry else None)
             else:
                 line.append(default[c])
         return line
