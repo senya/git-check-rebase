@@ -63,11 +63,23 @@ Options
 
 .. option:: --columns COLS_FORMAT
 
-   Two columns format are available for now:
+   You may use a comma-separated combination of following column names:
 
-   short: the default. Doesn't show meta, author and date columnts. Doesn't show information from meta file except for checked commits (marked by yellow color). Column headers are not printed too. This is convenient for comparing different versions of a branch with one feature, prepared to be sent upstream.
+     index - row number
+     commits - column group, corresponding to specified ranges
 
-   full: show all columns and meta information, as well as column headers. This is convenient for large rebases of downstream project branch to new upstream version.
+   all following columns contains information about the commit in the
+   right-most range:
+     feature - name of the feature the commit belong to
+     cherry - set, if commit message contains "cherry picked" wording
+     date - author date of the commit
+     author - author of the commit
+     msg_issues - issues, mentioned in the commit message
+     subject - commit subject
+
+   short-hands:
+     full - the same as feature,commits,data,author,subject
+     all - all available columns (can't be combined with other column names)
 
 .. option:: --rows ROWS_FORMAT
 

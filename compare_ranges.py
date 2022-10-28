@@ -309,13 +309,9 @@ class Table:
             if issues:
                 row.issues = [parse_jira_issue(issue) for issue in issues]
 
-    def to_list(self, fmt: str = 'colored',
+    def to_list(self, columns: List[Column],
+                fmt: str = 'colored',
                 headers: bool = True,
-                date_column: bool = True,
-                author_column: bool = True,
-                feature_column: bool = True,
-                index_column: bool = False,
-                commits_columns: bool = True,
                 rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
             -> VTable:
 
@@ -323,26 +319,13 @@ class Table:
         line: VTableRow
 
         if headers:
-            line = ['FEATURE'] if feature_column else []
-            line += [r.name for r in self.ranges]
-            if date_column:
-                line.append('DATE')
-            if author_column:
-                line.append('AUTHOR')
-            line.append('SUBJECT')
+            line = [c.name for c in columns]
+            if 'COMMITS' in line:
+                i = line.index('COMMITS')
+                line[i : i + 1] = [r.name for r in self.ranges]
             out.append(line)
 
         index_len = len(str(len(self.rows)))
-
-        mapping = (
-            (Column.INDEX, index_column),
-            (Column.FEATURE, feature_column),
-            (Column.COMMITS, commits_columns),
-            (Column.DATE, date_column),
-            (Column.AUTHOR, author_column),
-            (Column.SUBJECT, True)
-        )
-        columns = [m[0] for m in mapping if m[1]]
 
         for row_ind, row in enumerate(self.rows):
             if rows_hide_level.value >= RowsHideLevel.HIDE_CHECKED.value and \

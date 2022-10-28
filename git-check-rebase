@@ -12,7 +12,7 @@ import html_table_view
 import compare_ranges
 from check_rebase_meta import Meta
 from compare_ranges import MultiRange, CompRes, \
-    RowsHideLevel, NoBaseError
+    RowsHideLevel, NoBaseError, Column
 from compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 
@@ -48,12 +48,20 @@ class GitCheckRebase:
         self.ranges = []  # see parse_range_defs
         self.tab = None  # see main
 
+        self.headers = columns != 'short'
         if columns is None:
-            columns = 'short'
-        self.columns = columns.split(',')
-        self.cols_full = 'full' in self.columns
-        self.cols_commits = self.cols_full or 'short' in self.columns or \
-            'commits' in self.columns
+            self.columns = (Column.COMMITS, Column.SUBJECT)
+        elif columns == 'all':
+            self.columns = [c for c in Column]
+        else:
+            cols = columns.split(',')
+            if 'full' in cols:
+                i = cols.index('full')
+                cols[i : i + 1] = 'feature', 'commits', 'date', 'author', 'subject'
+            if 'short' in cols:
+                i = cols.index('short')
+                cols[i : i + 1] = 'commits', 'subject'
+            self.columns = [Column[c.upper()] for c in cols]
 
         if jira_issues:
             assert jira is not None
@@ -199,12 +207,8 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
                 if stop:
                     break
 
-        out = self.tab.to_list(headers=self.cols_full,
-                               date_column=self.cols_full,
-                               author_column=self.cols_full,
-                               feature_column=self.cols_full,
-                               index_column=('index' in self.columns),
-                               commits_columns=self.cols_commits,
+        out = self.tab.to_list(columns=self.columns,
+                               headers=self.headers,
                                rows_hide_level=self.rows_hide_level)
 
         if self.html:
