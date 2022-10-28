@@ -19,6 +19,8 @@ colors = {
 }
 
 class TextViewer(Viewer):
+    list_splitter = '\n'
+
     def __init__(self, color: bool = False) -> None:
         if color:
             from termcolor import colored

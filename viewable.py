@@ -39,6 +39,8 @@ VTable = List[VTableRow]
 
 
 class Viewer:
+    list_splitter = ''
+
     def view_git_hash(self, h: GitHashCell) -> str:
         return h.commit_hash
 
@@ -60,8 +62,9 @@ class Viewer:
             out.append([])
             for i, cell in enumerate(row):
                 if isinstance(cell, list):
-                    out[-1].append(''.join(self.view_element(el)
-                                           for el in cell))
+                    out[-1].append(
+                        self.list_splitter.join(self.view_element(el)
+                                                for el in cell))
                 else:
                     out[-1].append(self.view_element(cell))
         return out
