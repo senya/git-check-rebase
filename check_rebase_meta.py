@@ -60,7 +60,7 @@ class DropGroup:
         raise ValueError
 
 
-class CommitMeta:
+class CommitMeta(Feature):
     def __init__(self, subject, group=None):
         self.subject = subject
         self.comment = ''
@@ -78,6 +78,10 @@ class CommitMeta:
         self.checked.append((h1, h2))
 
     def add_property(self, prop):
+        if prop.startswith('drop') or prop.startswith('upstreaming'):
+            super().add_property(prop)
+            return
+
         if prop.startswith('ok:'):
             self.add_checked_pair(*(prop.split()[1:]))
         else:
