@@ -8,200 +8,32 @@ Use pip package manager in any way you prefer. For example:
 
     pip3 install git+https://gitlab.com/vsementsov/git-check-rebase.git
 
-Description
------------
 
-git-check-rebase package provides scripts for different kinds of git branch rebasing control. Let's look through the scenarios, from simple to more complicated.
-
-Compare two commits: git-change-diff, git-change-difftool
-------------------------------------
-
-Compare two commits. Git provides a native thing to compare commits - git-diff. But sometimes we need to compare the *changes* that commits do. Like comparing patches. Simple example: you cherry-picked some commit from one branch to another. After resolving the conflicts you want to check, what did you change in commit. You may format patches for the commits to compare and compare them by vimdiff, but there would be alot of noice: a bit different line numbers, different hashes. So, there is a tool, that compares differences ignoring such things: git-change-difftool. Usage is simple:
-
-    git change-diff *<rev1>* *<rev2>* [<N>]  -  compare changes, contributed by commits *rev1* and *rev2*, shorthand to git range-diff rev1^..rev1 rev2^..rev2, if N is provided it's a shorthand to git range-diff rev1~N..rev1 rev2~N..rev2
-    git change-difftool *<rev1>* *<rev2>*  -  compare changes, contributed by commits *rev1* and *rev2* in vimdiff (no relation to git range-diff)
-
-Compare git ranges: git-check-rebase
-------------------------------------
+.. program:: git-check-rebase
 
 Synopsis
 ~~~~~~~~
 
-**git-check-rebase** [-h] [--meta META] [--html] [--jira-issues JIRA_ISSUES] [--jira JIRA] [--legend] [--format FORMAT] [--interactive] range [range ...]
+**git-check-rebase** [options] range [range ...]
 
 Description
 ~~~~~~~~~~~
 
-git-check-rebase compares several git commit ranges. The algorithm works as follows:
+``git-check-rebase`` is an utility for different kinds of git branch rebasing control. git-check-rebase compares several git commit ranges and produce a comparison table, where columns corresponds to specified ranges (and there are some additional helping columns).
 
-1. Do ``git log --reverse`` for the last range, it's our *sequence*. And it's the right most commit column in the output table (as well as all columns to the right of it, specifying author, date and subject of the commit)
+The last range (the rightmost in the command line) produces *the sequence*. All rows of the resulting table correspond to comments from *the sequence* and the column corresponding to the sequence is a kind of ``git log --oneline --reverse``.
 
-2. For other ranges, for each commit from the *sequence* search for corresponding commit by subject. Thus, we construct the table.
+For each commit of the sequence ``git-check-rebase`` searches for corresponding commit in other ranges and fills corresponding cells in other range columns.
 
-3. For each line, compare commit from first (non-empty) column with other columns. Equal commits marked by green color, previously checked (see ``--meta``) are marked by yellow color.
+Then ``git-check-rebase`` compares the commits in the each line and mark equal commits by :green:`green` color. There is also a possibility to compare commits in :option:`--interactive` mode and mark them as checked. In this case leftmost commit in a row is :green:`green` and the equal (checked by hand) commit is :yellow:`yellow`.
 
-Options
-~~~~~~~
+Short example:
 
-.. program:: git-check-rebase
+    .. image:: docs/_static/img/ex1.png
 
-.. option:: --meta META
+    Here first commit is equal in both ``v1`` and ``v2`` of the ``feature`` branch, second commit is marked ``ok`` during :option:`--interactive` session, third commit is not checked (and not equal) and the last one is absent in ``v1``, so it's "new".
 
-   Use file with metadata for this rebase. metadata includes information of previously checked commits (marked yellow in the table), information about removed commits (why they are removed). For syntax of meta file see ``meta syntax`` below.
+Documentation
+~~~~~~~~~~~~~
 
-.. option:: --jira user:password@server
-
-   Specify jira account to be used ``--jira-issues`` option
-
-.. option:: --jira-issues ISSUE_KEY1[,ISSUE_KEY2...]
-
-   Comma separated list of issues, where to search for commits from the *sequence*. Subtasks are searched too. If epic issues is specified all issues in this epic are searched, not the epic itself. Issues with description containing some commit subject from the *sequence* are listed in meta-column of the output.
-
-.. option:: --legend
-
-   Show legend above the table - the description of columns and colors.
-
-.. option:: --columns COLS_FORMAT
-
-   You may use a comma-separated combination of following column names:
-
-     index - row number
-     commits - column group, corresponding to specified ranges
-
-   all following columns contains information about the commit in the
-   right-most range:
-     feature - name of the feature the commit belong to
-     cherry - set, if commit message contains "cherry picked" wording
-     date - author date of the commit
-     author - author of the commit
-     msg_issues - issues, mentioned in the commit message
-     subject - commit subject
-
-   short-hands:
-     full - the same as feature,commits,data,author,subject
-     all - all available columns (can't be combined with other column names)
-
-.. option:: --rows ROWS_FORMAT
-
-   Two rows formats are available for now:
-
-   all: the default. Print all rows.
-
-   short: omits rows where first column equal to the last column.
-
-.. option:: --interactive
-
-   For not-equal commits start an interactive comparison. For each pair of matching but not equeal commits ``vim`` is called with two patches opened to compare. In vim you may:
-
-   1. Use :meta command to toggle comment window, where you can put any comment about rebasing that commit. When :meta command closes the window its contents is saved. You also may save it by normal :w command.
-
-   2. Just exit (:qa), to continue the process
-
-   3. Use :ok command (save all and exit with error status 200) to mark current pair of commits as "OK" and continue the process
-
-   4. Use :cq (exit with error status 1) to stop the interactive process (all previous results are saved, don't forget to save meta buffer if you need)
-
-   The information (comments and OK statuses) is stored into meta file. If ``--meta`` option is not specified, new meta file is created.
-   ``--interactive`` may be used only when exatly two ranges are specified.
-
-.. option:: --color, --no-color
-
-   Highlight or not the results. When --html option is in use --no-color doesn't make sense: html is always highlighted.
-   If unspecified results are highlighted by default if stdout is tty.
-
-Ranges:
-
-*range* is ``[name:][base..]top[,[base..]top...]``, where name (if specified) will be used as corresponding column header. If *base* revision is not specified, the whole history of *top* revision is used as range (like for ``git-log`` command).
-
-Meta syntax
-~~~~~~~~~~~
-
-1. Empty lines are ignored.
-
-2. Line starting with ``#`` is a comment - ignored.
-
-3. Line ending with ``:`` is a tag. All further commits are marked with this tag. Tag started with ``drop`` marks further commits as dropped.
-
-4. Commit subject in a line sets current commit. When current commit is set, the following lines describe it:
-
-   1. Line `=<another commit subject>` sets equivalent subject.
-
-   2. Line starting with two spaces is a comment for this commit. It will be shown in the table. It's extremely useful for dropped commits, you can describe why commit is dropped.
-
-   3. Line `  ok: <git_hash_1> <git_hash_2>`, specifies that these commit hashes are checked. They will be marked by yellow color in the table
- 
-Usage examples
-~~~~~~~~~~~~~~
-
-1. Preparing a new version of feature branch for upstream. Assume you have feature-v2 and feature-v3 tags. You are going to send feature-v3 to mailing list, but want to check what was changed, are all comments on v2 satisfied and fill cover-letter with change description. In this case you just run:
-
-   git check-rebase --interactive feature-v2 master..feature-v3
-
-Thus you'll see which commits are new, and for changed commits you'll check what was changed.
-
-2. Backporting some feature from upstream to downstream. Assume we have ported 10 commits from master branch to our *downstream* branch. Let's check, what was changed:
-
-   git check-rebase --interactive master downstream~10..downstream
-
-3. Making a rebase of big downstream branch with a lot of features to new upstream version.
-
-The work is long, so to save intermediate results we'll need a meta file. So, create an empty file somewhere. The best thing is to store it in some git repo.
-
-Assume, we have branch downstream, which we are rebasing from upstream-v1 to upstream-v2. Assume original downstream release is tagged downstream-v1. So, the original range of commits to forward-port is **upstream-v1..downstream-v1**, and our current state is **upstream-v2..downstream**
-
-Then, iteration of work looks like this:
-
-1. Assume some rebasing work done: you've ported some commits, or make some fixes.
-
-2. Let's check, what we have:
-
-   git check-rebase --format=full --meta /path/to/meta new:upstream-v2..downstream master base:upstream-v1..upstream-v2 old:upstream-v1..downstream-v1
-
-Note the differences with previous examples:
-
-- We use ``full`` format, it shows also authors and dates of commits, which helps to distinguish different commit series.
-
-- We use tags for some ranges, to have good column headers.
-
-- The **sequence** is not our *new* branch but *old*. That's because now we are mostly interested in checking the state of each commit in old branch: is it successfully ported or not.
-
-What will we see:
-
-    - some commits are equal in old in new branches, they are most probably OK.
-
-    - some commits are absent in new branch, but present in base. That's very good.
-
-    - some commits are matching in different branches, but not green. We'll want to check them by hand.
-
-    - some commits are still not forward-ported or somehow lost.
-
-Now, we should work with our meta file. For example, compare some not green pairs of commits with help of ``git-change-difftool`` and add information to meta file, or start ``--interactive`` session of ``git-check-rebase`` which will add information to meta file automatically.
-
-Describe in meta file commits that are removed in a new version, like this:
-
-    drop:
-
-    <some commit subject>
-       (the commit is removed, as we don't need it anymore)
-
-    <another commit subject>
-       (the commit is removed because it's substituted by great feature in a new base)
-
-    # Don't care to port test fixes if tests pass
-    drop-test-fixes:
-    <some test fix commit subject>
-    <another test fix commit subject>
-    <one more test fix commit subject>
-
-If some commit is renamed in a new version, add information to the meta file as well:
-
-    <some commit subject with a type>
-    =<new commit subject with fixed type>
-
-Still note: it's a bad practice to rename a commit. Try to never do it: you are creating extra work for yourself. As well, never create different commits with equal subjects. Let's subjects be unique.
-
-Good, you've done a big porting job, and most of commits in your table (be free to call git check-rebase every time you've modified meta file, or change the history of new branch) are green or yellow or marked as dropped for some reasonable reason. But there several features, which are not very necessary for release and you are going to work with them in context of jira issues. To show this in the table, create jira issue of you forward-port, create some subtasks in it (optional), and note commit subjects of some commits from the *sequence* in the description of jira issue. Then add corresponding parameters to your ``git check-rebase`` call:
-
-    git check-rebase --jira user:password@server --jira-issues JIRA_ISSUE_KEY [other options]
-
-Issues noting commit in description will be noted in meta column of output table. The color will help to distinguish, critical, non-critical and closed issues.
+Full documentation is `here <https://git-check-rebase.readthedocs.io/en/upd/>`_
