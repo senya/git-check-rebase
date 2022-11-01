@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='git-check-rebase',
-      version='0.1',
+      version='0.2',
       description='Some useful scripts to operate track history and patch '
                   'changes during rebases.',
       author='Vladimir Sementsov-Ogievskiy',
