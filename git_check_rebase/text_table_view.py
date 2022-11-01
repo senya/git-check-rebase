@@ -1,6 +1,6 @@
-from compare_ranges import GitHashCell, Table, RowsHideLevel
+from .compare_ranges import GitHashCell, Table, RowsHideLevel
 import tabulate
-from viewable import Viewer, Span, GitHashCell
+from .viewable import Viewer, Span, GitHashCell
 
 tabulate.PRESERVE_WHITESPACE = True
 

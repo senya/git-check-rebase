@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Tuple
 from tempfile import mkstemp
 
-from simple_git import git, git_get_git_dir, git_log1, git_log
+from .simple_git import git, git_get_git_dir, git_log1, git_log
 
 eat_numbers_subs = tuple((re.compile(a, re.MULTILINE), b) for a, b in
                          (

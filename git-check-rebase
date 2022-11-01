@@ -6,17 +6,16 @@ from tempfile import mkstemp
 from typing import Optional, Type
 from types import TracebackType
 import tabulate
-import text_table_view
-import html_table_view
 
-import compare_ranges
-from check_rebase_meta import Meta
-from compare_ranges import MultiRange, CompRes, \
-    RowsHideLevel, NoBaseError, Column
-from compare_commits import interactive_compare_commits, \
+from git_check_rebase import text_table_view, html_table_view
+
+from git_check_rebase.check_rebase_meta import Meta
+from git_check_rebase.compare_ranges import MultiRange, CompRes, \
+    RowsHideLevel, NoBaseError, Column, Table
+from git_check_rebase.compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 
-from viewable import Span
+from git_check_rebase.viewable import Span
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -160,7 +159,7 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
         self.parse_range_defs()
 
-        self.tab = compare_ranges.Table(self.ranges, self.meta)
+        self.tab = Table(self.ranges, self.meta)
         self.tab.do_comparison(self.ign_commit_messages)
         if self.jira:
             self.tab.add_jira_info(self.jira, self.jira_issues)

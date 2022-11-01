@@ -1,5 +1,5 @@
-from compare_ranges import GitHashCell, Table, RowsHideLevel
-from viewable import Viewer, Span, GitHashCell
+from .compare_ranges import GitHashCell, Table, RowsHideLevel
+from .viewable import Viewer, Span, GitHashCell
 
 
 colors = {
