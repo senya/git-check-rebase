@@ -7,4 +7,5 @@ setup(name='git-check-rebase',
       author='Vladimir Sementsov-Ogievskiy',
       author_email='vsementsov@yandex-team.ru',
       license='MIT',
-      scripts=['git-check-rebase'])
+      scripts=['git-check-rebase'],
+      install_requires=['tabulate', 'termcolor'])
