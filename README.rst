@@ -38,4 +38,4 @@ When ``git-check-rebase`` can help?
 Documentation
 -------------
 
-Full documentation is `here <https://git-check-rebase.readthedocs.io/en/upd/>`_
+Full documentation is `here <https://git-check-rebase.readthedocs.io/en/latest/>`_
