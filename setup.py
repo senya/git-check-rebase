@@ -14,4 +14,7 @@ setup(name='git-check-rebase',
       scripts=['git-check-rebase'],
       packages=['git_check_rebase'],
       url='https://gitlab.com/vsementsov/git-check-rebase',
+      project_urls = {
+          'Docs': 'https://git-check-rebase.readthedocs.io/en/latest/'
+      },
       install_requires=['tabulate', 'termcolor'])
