@@ -158,7 +158,7 @@ Meta syntax
 
 Meta file contain meta information about commits of right-most column. Commits are indexed by their subject. So, most of lines of meta file are commit subjects. And there are special syntax defined below to attach some meta information to these subjects.
 
-Commants and empty lines
+Comments and empty lines
 ........................
 
 Empty lines and lines started with ``#`` are ignored.
