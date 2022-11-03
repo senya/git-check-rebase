@@ -143,6 +143,15 @@ Options
     <ref>~5-
         Defines git range ``<ref>~5..<ref>``. You may use any git reference, like tag or branch name or commit hash and ny combination of ``~`` and ``^`` operators.
     
+    **Special range names**
+
+    You can use any names for your commit columns, but some names has special meaning:
+
+    up
+        Used for upstream branch. If commit absent in the cell of ``up`` column, it will be filled with ``upstreaming`` or ``drop`` information, found for corresponding commit in meta file or in commit message.
+
+    new
+        Used for target branch of rebasing a downstream branch to a new upstream release. If commit absent in the cell of ``new`` column, it will be filled with ``drop`` information, found for corresponding commit in meta file.
 
 Meta syntax
 ~~~~~~~~~~~
