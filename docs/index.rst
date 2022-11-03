@@ -9,7 +9,7 @@ Installation
 
 Use pip package manager in any way you prefer. For example:
 
-    pip3 install git+https://gitlab.com/vsementsov/git-check-rebase.git
+    pip install git-check-rebase
 
 
 .. program:: git-check-rebase
