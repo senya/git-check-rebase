@@ -339,13 +339,12 @@ class Table:
 
         for row_ind, row in enumerate(self.rows):
             if rows_hide_level.value >= RowsHideLevel.HIDE_CHECKED.value and \
-                    all(c is not None and c.comp != CompRes.NONE for
-                        c in row.commits):
+                    all(c.comp != CompRes.NONE for
+                        c in row.commits if c is not None):
                 continue
             if rows_hide_level.value >= RowsHideLevel.HIDE_EQUAL.value and \
-                    all(c is not None and
-                        c.comp in (CompRes.BASE, CompRes.EQUAL) for
-                        c in row.commits):
+                    all(c.comp in (CompRes.BASE, CompRes.EQUAL) for
+                        c in row.commits if c is not None):
                 continue
 
             line = row.to_list(columns, {
