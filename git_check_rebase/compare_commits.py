@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Tuple
 from tempfile import mkstemp
 
-from .simple_git import git, git_get_git_dir, git_log1, git_log
+from .simple_git import git, git_get_git_dir, git_log1, git_log, git_commit_exists
 
 eat_numbers_subs = tuple((re.compile(a, re.MULTILINE), b) for a, b in
                          (
@@ -86,6 +86,16 @@ def are_commits_equal(c1: str, c2: str, ignore_cmsg: bool) -> bool:
 
     e = CACHE.get(c1, c2)
     if e is None:
+        c1_exists = git_commit_exists(c1)
+        if not c1_exists:
+            print(f'Commit {c1} does not exist')
+            return False
+        c2_exists = git_commit_exists(c2)
+        if not c2_exists:
+            print(f'Commit {c2} does not exist')
+            return False
+
+
         c1_text = eat_numbers(git('show --format= ' + c1))
         c2_text = eat_numbers(git('show --format= ' + c2))
 
