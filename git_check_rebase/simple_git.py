@@ -38,3 +38,10 @@ def git_log_table(fmt, param, splitter='$%^@'):
 
 def git_get_git_dir():
     return git('rev-parse --git-common-dir').strip()
+
+def git_commit_exists(rev):
+    try:
+        git('rev-parse --verify ' + rev, stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        return False

@@ -41,7 +41,7 @@ class Feature:
             assert not self.drop
             self.drop = 'drop'
         else:
-            key, val = [x.strip() for x in prop.split(':', 2)]
+            key, val = [x.strip() for x in prop.split(':', 1)]
             assert val
             if key == 'drop':
                 self.drop = 'drop-' + val
@@ -177,7 +177,7 @@ class Meta:
                         current_obj = None
                         del groups_stack[-1]
                     else:
-                        key, val = [x.strip() for x in line.split(':', 2)]
+                        key, val = [x.strip() for x in line.split(':', 1)]
                         if key == '%feature':
                             current_obj = Feature(val)
                         else:
