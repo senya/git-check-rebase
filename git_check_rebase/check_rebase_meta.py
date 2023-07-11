@@ -61,13 +61,18 @@ class DropGroup:
 
 
 class CommitMeta(Feature):
-    def __init__(self, subject, group=None):
+    def __init__(self, subject):
         self.subject = subject
         self.comment = ''
         self.checked = []
-        self.feature = group.feature if group else None
-        self.drop = group.drop if group else None
-        self.upstreaming = group.upstreaming if group else None
+        self.feature = None
+        self.drop = None
+        self.upstreaming = None
+
+    def add_group(self, group):
+        self.feature = group.feature
+        self.drop = group.drop
+        self.upstreaming = group.upstreaming
 
     def add_comment_line(self, comment):
         if self.comment:
@@ -187,11 +192,14 @@ class Meta:
 
                 else:
                     # Normal commit
-                    if subject_to_key(line) in self.by_key:
-                        raise ValueError('Double definition for: ' + line)
-                    group = groups_stack[-1] if groups_stack else None
-                    current_obj = CommitMeta(line, group=group)
-                    self.by_key[subject_to_key(line)] = current_obj
+                    key = subject_to_key(line)
+                    if key in self.by_key:
+                        current_obj = self.by_key[key]
+                    else:
+                        current_obj = CommitMeta(line)
+                        self.by_key[key] = current_obj
+                    if groups_stack:
+                        current_obj.add_group(groups_stack[-1])
 
     def alias_to_key(self, alias):
         return self.aliases.get(alias, alias)
