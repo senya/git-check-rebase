@@ -51,6 +51,9 @@ class Viewer:
         if type(el) == Span:
             return self.view_span(el)
 
+        if hasattr(el, 'is_critical'):
+            return self.view_issue(el)
+
         if el is None:
             return ''
 
@@ -72,3 +75,12 @@ class Viewer:
     def view_table(self, tab):
         out = self.convert_table(tab)
         return self.view_converted_table(out)
+
+    def view_issue(self, issue: Any) -> str:
+        if issue.is_fixed():
+            klass = 'bug-fixed'
+        elif issue.is_critical():
+            klass = 'bug-critical'
+        else:
+            klass = 'bug'
+        return self.view_span(Span(issue.key, klass))
