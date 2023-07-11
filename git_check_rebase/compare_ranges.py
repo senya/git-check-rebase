@@ -13,14 +13,6 @@ from .viewable import Span, Issue, GitHashCell, CompRes, VTable
 from .parse_issues import parse_issues
 
 
-def parse_jira_issue(jira_issue: Any) -> Issue:
-    return Issue(key = jira_issue.key,
-                 critical = jira_issue.fields.priority.name in ('Critical',
-                                                                'Blocker'),
-                 fixed = jira_issue.fields.resolution and
-                    jira_issue.fields.resolution.name == 'Fixed')
-
-
 class NoBaseError(Exception):
     pass
 
