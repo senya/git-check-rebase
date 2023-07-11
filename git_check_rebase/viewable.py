@@ -12,13 +12,6 @@ class Span:
         return self.text
 
 
-@dataclass
-class Issue:
-    key: str
-    critical: bool
-    fixed: bool
-
-
 class CompRes(Enum):
     NONE = 1
     BASE = 2  # Some other cells are equal to this one
@@ -32,7 +25,8 @@ class GitHashCell:
     commit_hash: str
     comp: CompRes = CompRes.NONE
 
-Viewable = Union[None, str, Span, Issue, GitHashCell]
+
+Viewable = Union[None, str, Span, GitHashCell]
 VTableCell = Union[Viewable, List[Viewable]]
 VTableRow = List[VTableCell]
 VTable = List[VTableRow]

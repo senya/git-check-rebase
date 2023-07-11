@@ -9,7 +9,7 @@ from .compare_commits import are_commits_equal
 from .check_rebase_meta import subject_to_key, text_add_indent, Meta, \
     CommitMeta
 
-from .viewable import Span, Issue, GitHashCell, CompRes, VTable
+from .viewable import Span, GitHashCell, CompRes, VTable
 from .parse_issues import parse_issues
 
 
@@ -119,7 +119,7 @@ class Column(Enum):
 class Row:
     """Representation of on row if git-range-diff-table"""
     commits: List[Optional[GitHashCell]]
-    issues: List[Issue]
+    issues: List[Any]
     date: str
     author: str
     subject: str
