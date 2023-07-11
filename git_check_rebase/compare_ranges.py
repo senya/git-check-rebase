@@ -2,14 +2,14 @@ import re
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Any, Union, Tuple, Dict
+from typing import List, Optional, Any, Tuple, Dict
 
 from .simple_git import git_log_table, git
 from .compare_commits import are_commits_equal
 from .check_rebase_meta import subject_to_key, text_add_indent, Meta, \
     CommitMeta
 
-from .viewable import Span, GitHashCell, CompRes, VTable
+from .viewable import Span, GitHashCell, CompRes, VTable, VTableRow
 from .parse_issues import parse_issues
 
 
@@ -115,6 +115,7 @@ class Column(Enum):
     AUTHOR = 6
     MSG_ISSUES = 7
     SUBJECT = 8
+
 
 class Row:
     """Representation of on row if git-range-diff-table"""
@@ -351,7 +352,7 @@ class Table:
             line = [c.name for c in columns]
             if 'COMMITS' in line:
                 i = line.index('COMMITS')
-                line[i : i + 1] = [r.name for r in self.ranges]
+                line[i:i+1] = [r.name for r in self.ranges]
             out.append(line)
 
         index_len = len(str(len(self.rows)))

@@ -1,5 +1,4 @@
-from .compare_ranges import GitHashCell, Table, RowsHideLevel
-from .viewable import Viewer, Span, GitHashCell
+from .viewable import Viewer, Span, GitHashCell, ConvertedTable
 
 
 colors = {
@@ -28,7 +27,7 @@ class HtmlViewer(Viewer):
         col = colors[s.klass]
         return f'<span style="color: {col}">{s.text}</span>'
 
-    def view_converted_table(self, tab) -> str:
+    def view_converted_table(self, tab: ConvertedTable) -> str:
         return '<table>' + \
             '\n'.join('<tr>' + ''.join(f'<td>{x}</td>' for x in row) + '</tr>'
                       for row in tab) + '</table>'

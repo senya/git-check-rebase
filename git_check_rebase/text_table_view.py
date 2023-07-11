@@ -1,6 +1,6 @@
-from .compare_ranges import GitHashCell, Table, RowsHideLevel
-import tabulate
-from .viewable import Viewer, Span, GitHashCell
+import tabulate  # type: ignore
+
+from .viewable import Viewer, Span, GitHashCell, ConvertedTable
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -18,6 +18,7 @@ colors = {
     None: None
 }
 
+
 class TextViewer(Viewer):
     list_splitter = '\n'
 
@@ -34,5 +35,5 @@ class TextViewer(Viewer):
     def view_span(self, s: Span) -> str:
         return self.styled(s.text, s.klass)
 
-    def view_converted_table(self, tab) -> str:
+    def view_converted_table(self, tab: ConvertedTable) -> str:
         return tabulate.tabulate(tab, tablefmt='plain')

@@ -5,17 +5,17 @@ import sys
 from tempfile import mkstemp
 from typing import Optional, Type
 from types import TracebackType
-import tabulate
+import tabulate  # type: ignore
 
 from git_check_rebase import text_table_view, html_table_view
 
 from git_check_rebase.check_rebase_meta import Meta
-from git_check_rebase.compare_ranges import MultiRange, CompRes, \
+from git_check_rebase.compare_ranges import MultiRange, \
     RowsHideLevel, NoBaseError, Column, Table
 from git_check_rebase.compare_commits import interactive_compare_commits, \
     check_git_clean_branch
 
-from git_check_rebase.viewable import Span
+from git_check_rebase.viewable import Span, CompRes
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -59,10 +59,11 @@ class GitCheckRebase:
             cols = columns.split(',')
             if 'full' in cols:
                 i = cols.index('full')
-                cols[i : i + 1] = 'feature', 'commits', 'date', 'author', 'subject'
+                cols[i:i+1] = 'feature', 'commits', 'date', 'author', \
+                    'subject'
             if 'short' in cols:
                 i = cols.index('short')
-                cols[i : i + 1] = 'commits', 'subject'
+                cols[i:i+1] = 'commits', 'subject'
             self.columns = [Column[c.upper()] for c in cols]
 
         self.html = html

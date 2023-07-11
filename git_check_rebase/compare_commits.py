@@ -169,7 +169,7 @@ def run_vim(f1: str, f2: str, comment_path: Optional[str],
     cmd += ['-c', ':norm gg']
 
     code = subprocess.run(cmd, check=False).returncode
-    return IntrCompRes(ok = code == 200, stop = code not in (0, 200))
+    return IntrCompRes(ok=(code == 200), stop=(code not in (0, 200)))
 
 
 def text_to_lines(text: str) -> List[str]:

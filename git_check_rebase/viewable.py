@@ -1,6 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional, Any, Union, Tuple, Dict
+from typing import List, Any, Union
 
 
 @dataclass
@@ -27,9 +27,10 @@ class GitHashCell:
 
 
 Viewable = Union[None, str, Span, GitHashCell]
-VTableCell = Union[Viewable, List[Viewable]]
+VTableCell = Union[str, Viewable, List[Viewable]]
 VTableRow = List[VTableCell]
 VTable = List[VTableRow]
+ConvertedTable = List[List[str]]
 
 
 class Viewer:
@@ -37,6 +38,12 @@ class Viewer:
 
     def view_git_hash(self, h: GitHashCell) -> str:
         return h.commit_hash
+
+    def view_span(self, s: Span) -> str:
+        return s.text
+
+    def view_converted_table(self, tab: ConvertedTable) -> str:
+        raise NotImplementedError
 
     def view_element(self, el: Viewable) -> str:
         if type(el) == GitHashCell:
@@ -53,8 +60,8 @@ class Viewer:
 
         return str(el)
 
-    def convert_table(self, tab):
-        out = []
+    def convert_table(self, tab: VTable) -> ConvertedTable:
+        out: ConvertedTable = []
         for row in tab:
             out.append([])
             for i, cell in enumerate(row):
@@ -66,7 +73,7 @@ class Viewer:
                     out[-1].append(self.view_element(cell))
         return out
 
-    def view_table(self, tab):
+    def view_table(self, tab: VTable) -> str:
         out = self.convert_table(tab)
         return self.view_converted_table(out)
 
