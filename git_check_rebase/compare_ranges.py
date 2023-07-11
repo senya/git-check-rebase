@@ -10,6 +10,7 @@ from .check_rebase_meta import subject_to_key, text_add_indent, Meta, \
     CommitMeta
 
 from .viewable import Span, Issue, GitHashCell, CompRes, VTable
+from .parse_issues import parse_issues
 
 
 def parse_jira_issue(jira_issue: Any) -> Issue:
@@ -306,18 +307,21 @@ class Table:
 
                 self._compare_commits(base, c, row.meta, ignore_cmsg)
 
-    def add_jira_info(self, jira, jira_issues):
-        from .parse_jira import parse_jira
+    def add_porting_issues(self, issue_tracker, porting_issues):
+        if issue_tracker == 'jira':
+            from .gcr_jira import GCRTracer
+        else:
+            import importlib
+            mod, klass = issue_tracker.rsplit('.', 1)
+            GCRTracer = getattr(importlib.import_module(mod), klass)
 
-        auth, server = jira.rsplit('@', 1)
-        user, password = auth.split(':', 1)
-        jiramap = parse_jira('https://' + server, user, password, jira_issues,
-                             [r.subject for r in self.rows])
-
+        tracker = GCRTracer()
+        issues_map = parse_issues(tracker, porting_issues,
+                                  [r.subject for r in self.rows])
         for row in self.rows:
-            issues = jiramap.get(row.subject)
+            issues = issues_map.get(row.subject)
             if issues:
-                row.issues = [parse_jira_issue(issue) for issue in issues]
+                row.issues = issues
 
     def to_list(self, columns: List[Column],
                 fmt: str = 'colored',

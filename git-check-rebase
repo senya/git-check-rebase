@@ -34,12 +34,14 @@ def print_legend(viewer, ranges, html):
 
 
 class GitCheckRebase:
-    def __init__(self, range_defs, meta_path, html, jira, jira_issues, legend,
+    def __init__(self, range_defs, meta_path, html, issue_tracker,
+                 porting_issues, legend,
                  columns, rows_hide_level, interactive, color,
                  ign_commit_messages):
         self.range_defs = range_defs
-        self.jira = jira
-        self.jira_issues = jira_issues
+        self.issue_tracker = issue_tracker
+        self.porting_issues = \
+            porting_issues.split(',') if porting_issues else []
         self.legend = legend
         self.rows_hide_level = rows_hide_level
         self.interactive = interactive
@@ -61,11 +63,6 @@ class GitCheckRebase:
                 i = cols.index('short')
                 cols[i : i + 1] = 'commits', 'subject'
             self.columns = [Column[c.upper()] for c in cols]
-
-        if jira_issues:
-            assert jira is not None
-            self.jira = jira
-            self.jira_issues = jira_issues.split(',')
 
         self.html = html
         if html:
@@ -161,8 +158,9 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
         self.tab = Table(self.ranges, self.meta)
         self.tab.do_comparison(self.ign_commit_messages)
-        if self.jira:
-            self.tab.add_jira_info(self.jira, self.jira_issues)
+        if self.porting_issues:
+            self.tab.add_porting_issues(self.issue_tracker,
+                                        self.porting_issues)
 
         if self.interactive:
             branch = check_git_clean_branch()
@@ -236,9 +234,11 @@ if __name__ == '__main__':
                    'in form [<name>:]<git range or ref>')
     p.add_argument('--meta', help='optional, file with additional metadata')
     p.add_argument('--html', help='output in html format', action='store_true')
-    p.add_argument('--jira-issues',
-                   help='optional, comma-separated jira issues list')
-    p.add_argument('--jira', help='user:password@server')
+    p.add_argument('--porting-issues',
+                   help='''optional, comma-separated issues list.
+Issues are recursively searched for commit subjects in descriptions.
+Then, corresponding issue keys are used to fill "new" column if exist''')
+    p.add_argument('--issue-tracker', help='class of issue tracker')
     p.add_argument('--legend', help='print legend', action='store_true')
     p.add_argument('--columns',
                    help='which columns to show in table: "short" is default. '
@@ -270,7 +270,8 @@ if __name__ == '__main__':
     try:
         gcr = GitCheckRebase(range_defs=args.ranges, meta_path=args.meta,
                              html=args.html,
-                             jira=args.jira, jira_issues=args.jira_issues,
+                             issue_tracker=args.issue_tracker,
+                             porting_issues=args.porting_issues,
                              legend=args.legend, columns=args.columns,
                              rows_hide_level=rows_hide_lvl,
                              interactive=args.interactive,

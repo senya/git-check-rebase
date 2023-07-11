@@ -43,13 +43,13 @@ Options
 
    Use file with metadata for this rebase. Metadata includes information of previously checked commits (marked yellow in the table), information about removed commits (why they are removed). For syntax of meta file see :ref:`Meta syntax` below.
 
-.. option:: --jira user:password@server
+.. option:: --issue-tracker ISSUE_TRACKER
 
-   Specify jira account to be used :option:`--jira-issues` option
+   Specify issue tracker. You may use ``--issue-tracker jira`` for internal jira tracker, or specify any python class available in your system, like ``--issue-tracer my_package.MyTracker``. The class must implement same interface as ``git_check_rebase.gcr_jira.GCRTracer`` (see https://gitlab.com/vsementsov/git-check-rebase/-/blob/master/git_check_rebase/gcr_jira.py).
 
-.. option:: --jira-issues ISSUE_KEY1[,ISSUE_KEY2...]
+.. option:: --porting-issues ISSUE_KEY1[,ISSUE_KEY2...]
 
-   Comma separated list of issues, where to search for commits from the *sequence*. Subtasks are searched too. If epic issues is specified all issues in this epic are searched, not the epic itself. Issues with description containing some commit subject from the *sequence* are listed in meta-column of the output.
+   Comma separated list of issues, where to search for commits from the *sequence*. Subtasks/subepics are searched too. Issues with description containing some commit subject from the *sequence* are listed in "new" column.
 
 .. option:: --legend
 
@@ -151,7 +151,7 @@ Options
         Used for upstream branch. If commit absent in the cell of ``up`` column, it will be filled with ``upstreaming`` or ``drop`` information, found for corresponding commit in meta file or in commit message.
 
     new
-        Used for target branch of rebasing a downstream branch to a new upstream release. If commit absent in the cell of ``new`` column, it will be filled with ``drop`` information, found for corresponding commit in meta file.
+        Used for target branch of rebasing a downstream branch to a new upstream release. If commit absent in the cell of ``new`` column, it will be filled with ``drop`` information, found for corresponding commit in meta file, or with issue key found in the issue tracker (if ``--issue-tracker`` and ``--porting-issues`` are specified)
 
 Meta syntax
 ~~~~~~~~~~~
@@ -363,7 +363,7 @@ Good, you've done a big porting job, and most of commits in your table (be free 
 
 .. code-block::
     
-    git check-rebase --jira user:password@server --jira-issues JIRA_ISSUE_KEY [other options]
+    git check-rebase --issue-tracker jira --porting-issues JIRA_ISSUE_KEY [other options]
 
 Issues noting commit in description will be shown in ``new`` smart column of output table. The color will help to distinguish, critical, non-critical and closed issues.
 
