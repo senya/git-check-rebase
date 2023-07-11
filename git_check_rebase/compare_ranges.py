@@ -198,6 +198,9 @@ class Row:
         if self.new_ind != -1 and out[self.new_ind] is None:
             out[self.new_ind] = self.issues
 
+        if self.new_ind != -1 and not out[self.new_ind]:
+            out[self.new_ind] = Span('███???███', 'unknown')
+
         return out
 
     def to_list(self, columns: List[Column],
