@@ -71,12 +71,31 @@ class Commit:
     author_date: str
     author_name: str
     subject: str
+    in_tag: str
 
 
 def git_log_commits(git_range):
-    return [Commit(commit_hash=h, author_date=ad,
-                   author_name=an, subject=s) for h, ad, an, s in
-            git_log_table('%h %ad %an %s', git_range)]
+    res = []
+    for h, ad, an, d, s in git_log_table('%h %ad %an %D %s', git_range):
+        tag = ''
+        if 'tag' in d:
+            desc = next(x for x in d.split(',') if 'tag' in x)
+            tag = desc.split(':', 1)[1].strip()
+            if not re.fullmatch(r'v([0-9]+\.)*[0-9]+', tag):
+                tag = None
+        res.append(Commit(commit_hash=h, author_date=ad,
+                          author_name=an, subject=s, in_tag=tag))
+
+    current_tag = ''
+    for c in reversed(res):
+        if c.in_tag:
+            current_tag = c.in_tag
+            continue
+
+        if current_tag:
+            c.in_tag = current_tag
+
+    return res
 
 
 class MultiRange:
@@ -272,7 +291,11 @@ class Table:
             for r_ind, r in enumerate(ranges[:-1]):
                 if key in r.by_key:
                     j, c2 = r.by_key[key]
-                    row.commits[r_ind] = GitHashCell(c2.commit_hash)
+                    in_tag = ''
+                    if r_ind in (row.up_ind, row.new_ind):
+                        in_tag = c2.in_tag
+                    row.commits[r_ind] = GitHashCell(c2.commit_hash,
+                                                     in_tag=in_tag)
                     if j != i:
                         corresponding[r_ind] = False
 

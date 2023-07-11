@@ -24,6 +24,7 @@ class GitHashCell:
     """Representation of one cell with commit hash"""
     commit_hash: str
     comp: CompRes = CompRes.NONE
+    in_tag: str = ''
 
 
 Viewable = Union[None, str, Span, GitHashCell]
@@ -37,7 +38,10 @@ class Viewer:
     list_splitter = ''
 
     def view_git_hash(self, h: GitHashCell) -> str:
-        return h.commit_hash
+        ret = h.commit_hash
+        if h.in_tag:
+            ret += f' (in {h.in_tag})'
+        return ret
 
     def view_span(self, s: Span) -> str:
         return s.text

@@ -10,6 +10,7 @@ colors = {
     'equal': 'green',
     'base': 'green',
     'checked': 'orange',
+    'in-tag': 'orange',
     'drop': 'magenta',
     'none': None,
     None: None
@@ -21,7 +22,10 @@ class HtmlViewer(Viewer):
         href = 'https://bb.yandex-team.ru/projects/CLOUD/repos/' + \
             'qemu/commits/' + h.commit_hash
         col = colors[h.comp.name.lower()]
-        return f'<a href="{href}" style="color: {col}">{h.commit_hash}</a>'
+        ret = f'<a href="{href}" style="color: {col}">{h.commit_hash}</a>'
+        if h.in_tag:
+            ret += self.view_span(Span(f' (in {h.in_tag})', 'in-tag'))
+        return ret
 
     def view_span(self, s: Span) -> str:
         col = colors[s.klass]
