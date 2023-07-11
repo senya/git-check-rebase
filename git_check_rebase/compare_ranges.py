@@ -157,7 +157,8 @@ class Row:
 
         msg = git(f'log -1 {c.commit_hash}')
         self.cherry = 'cherry picked' in msg
-        self.msg_issues = re.findall(r'\b[A-Z]+-\d+\b', msg)
+        self.msg_issues = list(set(re.findall(r'\b[A-Z]+-\d+\b(?!-)', msg)))
+        self.msg_issues.sort(key=lambda x: int(x.split('-', 1)[1]))
 
         m = re.search(r'^    Feature: (.*)$', msg, re.MULTILINE)
         if m:
