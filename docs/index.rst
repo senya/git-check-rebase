@@ -90,7 +90,9 @@ Options
 
 .. option:: --rows-hide-level {show_all,hide_equal,hide_checked}
 
-    How much rows to show:
+    DEPRECATED: use --rows-filter instead!
+
+    How many rows to show:
 
     show_all
         the default, show all rows
@@ -100,6 +102,10 @@ Options
 
     hide_checked
         hide rows where commits are equal (green) or checked (yellow)
+
+.. option:: --rows-filter ROWS_FILTER
+
+    A python expression (to be evaluated by ``eval()``, so be careful!). If result of the expression is evaluated as ``True`` the row is shown, otherwise hidden. In the expression you may use names of columns and any attribute of Row object, like methods ``all_equal()`` or ``all_ok()``. So ``--rows-hide-level hide_equal`` equals ``--rows-filter 'not all_equal()'`` and ``--rows-hide-level hide_checked`` equals ``--rows-filter 'not all_ok()'``.
 
 .. option:: --interactive
 

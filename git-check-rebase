@@ -36,7 +36,7 @@ def print_legend(viewer, ranges, html):
 class GitCheckRebase:
     def __init__(self, range_defs, meta_path, html, issue_tracker,
                  porting_issues, legend,
-                 columns, rows_hide_level, interactive, color,
+                 columns, rows_hide_level, rows_filter, interactive, color,
                  ign_commit_messages):
         self.range_defs = range_defs
         self.issue_tracker = issue_tracker
@@ -44,6 +44,7 @@ class GitCheckRebase:
             porting_issues.split(',') if porting_issues else []
         self.legend = legend
         self.rows_hide_level = rows_hide_level
+        self.rows_filter = rows_filter
         self.interactive = interactive
         self.ign_commit_messages = ign_commit_messages
         self.ranges = []  # see parse_range_defs
@@ -206,7 +207,8 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
         out = self.tab.to_list(columns=self.columns,
                                headers=self.headers,
-                               rows_hide_level=self.rows_hide_level)
+                               rows_hide_level=self.rows_hide_level,
+                               rows_filter=self.rows_filter)
 
         if self.html:
             print("""<!DOCTYPE html>
@@ -248,6 +250,8 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                    choices=[x.name.lower() for x in RowsHideLevel],
                    help='which rows to hide in table: "show_all" is default. ',
                    default=RowsHideLevel.SHOW_ALL.name.lower())
+    p.add_argument('--rows-filter',
+                   help='which rows to show. experimental feature')
     p.add_argument('--interactive',
                    help='do interactive comparison of not-equal commits. '
                    'For each commit to compare, vimdiff is started as a '
@@ -274,6 +278,7 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                              porting_issues=args.porting_issues,
                              legend=args.legend, columns=args.columns,
                              rows_hide_level=rows_hide_lvl,
+                             rows_filter=args.rows_filter,
                              interactive=args.interactive,
                              color=args.color,
                              ign_commit_messages=args.ignore_commit_messages)

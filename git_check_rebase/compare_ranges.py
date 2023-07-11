@@ -226,6 +226,25 @@ class Row:
                 line.append(default[c])
         return line
 
+    def all_ok(self) -> bool:
+        return all(c is not None and c.comp != CompRes.NONE
+                   for c in self.commits)
+
+    def all_equal(self) -> bool:
+        return all(c is not None and
+                   c.comp in (CompRes.BASE, CompRes.EQUAL)
+                   for c in self.commits)
+
+    def match_filter(self, expr: str) -> bool:
+        if not expr:
+            return True
+        commits = self.get_commits()
+        env = {a: getattr(self, a) for a in dir(self) if a[0] != '_'}
+        for i, r in enumerate(self.ranges):
+            if r.name.isidentifier():
+                env[r.name] = commits[i]
+        return eval(expr, env)
+
 
 class RowsHideLevel(Enum):
     SHOW_ALL = 1
@@ -330,8 +349,8 @@ class Table:
     def to_list(self, columns: List[Column],
                 fmt: str = 'colored',
                 headers: bool = True,
-                rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL) \
-            -> VTable:
+                rows_hide_level: RowsHideLevel = RowsHideLevel.SHOW_ALL,
+                rows_filter: str = '') -> VTable:
 
         out: VTable = []
         line: VTableRow
@@ -346,14 +365,14 @@ class Table:
         index_len = len(str(len(self.rows)))
 
         for row_ind, row in enumerate(self.rows):
+            if not row.match_filter(rows_filter):
+                continue
+
             if rows_hide_level.value >= RowsHideLevel.HIDE_CHECKED.value and \
-                    all(c is not None and c.comp != CompRes.NONE for
-                        c in row.commits):
+                    row.all_ok():
                 continue
             if rows_hide_level.value >= RowsHideLevel.HIDE_EQUAL.value and \
-                    all(c is not None and
-                        c.comp in (CompRes.BASE, CompRes.EQUAL) for
-                        c in row.commits):
+                    row.all_equal():
                 continue
 
             line = row.to_list(columns, {
