@@ -260,9 +260,11 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                    'mark commits "ok", and with error (by :cq) to don\'t '
                    'mark commits "ok"', action='store_true')
     p.add_argument('--color',
-                   help='Highlight results. By default does coloring only '
-                   'when stdout is tty', action=argparse.BooleanOptionalAction,
-                   default=None)
+                   help='Highlight results. By default does coloring '
+                   'when stdout is tty', action='store_true')
+    p.add_argument('--no-color',
+                   help='Do not highlight results. By default does coloring '
+                   'when stdout is tty', action='store_true')
     p.add_argument('--ignore-commit-messages',
                    help='Ignore commit message when compare commits',
                    action='store_true')
@@ -270,6 +272,16 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                    'start from for interactive check.')
 
     args = p.parse_args()
+
+    # TODO: instead, move to argparse.BooleanOptionalAction in future.
+    # Now python 3.9 (or higher) is still not enough popular
+    if args.color and args.no_color:
+        sys.exit('Using both --color and --no-color is not allowed')
+    color = None if not (args.color or args.no_color) else args.color
+
+    if color:
+        # For termcolor library
+        os.environ['FORCE_COLOR'] = 'yes'
 
     rows_hide_lvl = RowsHideLevel[args.rows_hide_level.upper()]
     try:
@@ -281,7 +293,7 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                              rows_hide_level=rows_hide_lvl,
                              rows_filter=args.rows_filter,
                              interactive=args.interactive,
-                             color=args.color,
+                             color=color,
                              ign_commit_messages=args.ignore_commit_messages)
     except OSError as e:
         sys.exit(f'Failed to open "{args.meta}": {e.strerror}')
