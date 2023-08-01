@@ -78,8 +78,9 @@ def git_log_commits(git_range):
     res = []
     for h, ad, an, d, s in git_log_table('%h %ad %an %D %s', git_range):
         tag = ''
-        if 'tag' in d:
-            desc = next(x for x in d.split(',') if 'tag' in x)
+        if 'tag:' in d:
+            desc = next(x for x in d.split(',')
+                        if x.strip().startswith('tag:'))
             tag = desc.split(':', 1)[1].strip()
             if not re.fullmatch(r'v([0-9]+\.)*[0-9]+', tag):
                 tag = None
