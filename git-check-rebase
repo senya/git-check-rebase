@@ -2,8 +2,10 @@
 
 import os
 import sys
-from tempfile import mkstemp
-from typing import Optional, Type
+import shutil
+import subprocess
+from tempfile import mkstemp, mkdtemp
+from typing import Optional, Type, List
 from types import TracebackType
 import tabulate  # type: ignore
 
@@ -13,9 +15,11 @@ from git_check_rebase.check_rebase_meta import Meta
 from git_check_rebase.compare_ranges import MultiRange, \
     RowsHideLevel, NoBaseError, Column, Table
 from git_check_rebase.compare_commits import interactive_compare_commits, \
-    check_git_clean_branch
+    check_git_clean_branch, eat_numbers
 
 from git_check_rebase.viewable import Span, CompRes
+
+from git_check_rebase.simple_git import git, git_log1
 
 tabulate.PRESERVE_WHITESPACE = True
 
@@ -36,8 +40,8 @@ def print_legend(viewer, ranges, html):
 class GitCheckRebase:
     def __init__(self, range_defs, meta_path, html, issue_tracker,
                  porting_issues, legend,
-                 columns, rows_hide_level, rows_filter, interactive, color,
-                 ign_commit_messages):
+                 columns, rows_hide_level, rows_filter, interactive,
+                 export_as_branch, color, ign_commit_messages):
         self.range_defs = range_defs
         self.issue_tracker = issue_tracker
         self.porting_issues = \
@@ -46,6 +50,7 @@ class GitCheckRebase:
         self.rows_hide_level = rows_hide_level
         self.rows_filter = rows_filter
         self.interactive = interactive
+        self.export_as_branch = export_as_branch
         self.ign_commit_messages = ign_commit_messages
         self.ranges = []  # see parse_range_defs
         self.tab = None  # see main
@@ -151,6 +156,51 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
 
         return res.new_c1 or res.new_c2
 
+    def find_column(self, name: str) -> int:
+        """Find column by name and return its index"""
+        for i, r in enumerate(self.ranges):
+            if r.name == name:
+                return i
+        raise ValueError(f'No "{name}" column')
+
+    def do_export_as_branch(self, branch: str, columns: List[str]) -> None:
+        tempdir = mkdtemp()
+        worktree = os.path.join(tempdir, 'repo')
+
+        git(f'worktree add --detach {worktree}')
+
+        cur_dir = os.getcwd()
+        os.chdir(worktree)
+        try:
+            git(f'checkout --orphan {branch}')
+        except subprocess.CalledProcessError:
+            # assume branch already exists
+            git(f'checkout {branch}')
+
+        for name in columns:
+            ind = self.find_column(name)
+            git('rm -rf .')
+            for row_ind, row in enumerate(self.tab.rows):
+                c = row.commits[ind]
+                if c is None:
+                    continue
+
+                patch = git('show --format=email ' + c.commit_hash)
+                filtered = eat_numbers(patch, ignore_empty_lines=False)
+
+                fname = git_log1(f'{row_ind+1:02}-%f.patch', c.commit_hash)
+                with open(fname, 'w') as f:
+                    f.write(filtered)
+
+            git('add .')
+            git(f'commit -m {self.ranges[ind].name} --allow-empty')
+
+        print(f'Created branch: {branch}')
+
+        os.chdir(cur_dir)
+        shutil.rmtree(tempdir)
+        git('worktree prune')
+
     def main(self, start_from):
         if start_from:
             if not self.interactive:
@@ -163,6 +213,10 @@ You may use it with next run, specifying option --meta {self.meta.fname}""")
         if self.porting_issues:
             self.tab.add_porting_issues(self.issue_tracker,
                                         self.porting_issues)
+
+        if self.export_as_branch:
+            branch, *columns = self.export_as_branch.split(',')
+            self.do_export_as_branch(branch, columns)
 
         if self.interactive:
             branch = check_git_clean_branch()
@@ -270,6 +324,10 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                    action='store_true')
     p.add_argument('--start-from', help='hash commit of right column to '
                    'start from for interactive check.')
+    p.add_argument('--export-as-branch', help='make an orphan branch with '
+                   'two commits showing the difference between two specified '
+                   'columns. Syntax: --export-as-branch '
+                   'BRANCH_NAME,OLD_COLUMN_NAME,NEW_COLUMN_NAME')
 
     args = p.parse_args()
 
@@ -293,6 +351,7 @@ Then, corresponding issue keys are used to fill "new" column if exist''')
                              rows_hide_level=rows_hide_lvl,
                              rows_filter=args.rows_filter,
                              interactive=args.interactive,
+                             export_as_branch=args.export_as_branch,
                              color=color,
                              ign_commit_messages=args.ignore_commit_messages)
     except OSError as e:
