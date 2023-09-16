@@ -70,9 +70,12 @@ class CommitMeta(Feature):
         self.upstreaming = None
 
     def add_group(self, group):
-        self.feature = group.feature
-        self.drop = group.drop
-        self.upstreaming = group.upstreaming
+        if self.feature is None:
+            self.feature = group.feature
+        if not self.drop:
+            self.drop = group.drop
+        if self.upstreaming is None:
+            self.upstreaming = group.upstreaming
 
     def add_comment_line(self, comment):
         if self.comment:
