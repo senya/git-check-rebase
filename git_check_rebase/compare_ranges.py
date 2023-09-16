@@ -106,7 +106,7 @@ class MultiRange:
             self.name, definition = definition.split(':', 1)
             self.legend = f'{self.name} = {definition}'
         else:
-            self.name = definition
+            self.name = definition.replace('.', '-').replace('/', '-')
             self.legend = None
 
         if ',' in definition:
